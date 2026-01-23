@@ -3475,11 +3475,11 @@ EOF_HEADER
     import_dashboards_via_harvest() {
         local bearer_token="$1"
         
-        print_info "Попытка импорта дашбордов через harvest..."
+        print_info "Попытка импорта дашбордов через harvest (исключая Harvest-main-7mode)..."
         
-        # Пробуем импортировать дашборды
-        if echo "Y" | ./bin/harvest --config ./harvest.yml grafana import --addr "$grafana_url" --token "$bearer_token" --insecure 2>&1; then
-            print_success "Дашборды импортированы через harvest"
+        # Пробуем импортировать дашборды (исключая 7-mode дашборд, т.к. используется только cDOT)
+        if echo "Y" | ./bin/harvest --config ./harvest.yml grafana import --addr "$grafana_url" --token "$bearer_token" --insecure --exclude "Harvest-main-7mode" 2>&1; then
+            print_success "Дашборды импортированы через harvest (7mode дашборд исключен)"
             return 0
         else
             print_warning "Не удалось импортировать дашборды автоматически через harvest"
@@ -3800,16 +3800,17 @@ import_grafana_dashboards() {
         return 1
     fi
 
-    if echo "Y" | ./bin/harvest --config "$HARVEST_CONFIG" grafana import --addr "$grafana_url" --token "$GRAFANA_BEARER_TOKEN" --insecure >/dev/null 2>&1; then
-        print_success "Дашборды успешно импортированы"
+    print_info "Импорт дашбордов (исключая Harvest-main-7mode, т.к. используется cDOT)..."
+    if echo "Y" | ./bin/harvest --config "$HARVEST_CONFIG" grafana import --addr "$grafana_url" --token "$GRAFANA_BEARER_TOKEN" --insecure --exclude "Harvest-main-7mode" >/dev/null 2>&1; then
+        print_success "Дашборды успешно импортированы (7mode дашборд исключен)"
     else
         print_error "Не удалось импортировать дашборды автоматически"
         log_message "[GRAFANA IMPORT ERROR] Не удалось импортировать дашборды"
         print_info "Вы можете импортировать их позже командой:"
-        print_info "cd /opt/harvest && echo 'Y' | ./bin/harvest --config \"$HARVEST_CONFIG\" grafana import --addr $grafana_url --token <YOUR_TOKEN> --insecure"
+        print_info "cd /opt/harvest && echo 'Y' | ./bin/harvest --config \"$HARVEST_CONFIG\" grafana import --addr $grafana_url --token <YOUR_TOKEN> --insecure --exclude \"Harvest-main-7mode\""
         return 1
     fi
-    print_success "Процесс импорта дашбордов завершен"
+    print_success "Процесс импорта дашбордов завершен (7mode дашборд исключен)"
 }
 
 # Функция проверки системных сервисов (fallback)

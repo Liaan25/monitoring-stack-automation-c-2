@@ -363,11 +363,11 @@ chmod 600 "''' + env.SSH_KEY + '''" 2>/dev/null || true
 echo ""
 echo "[INFO] Тестируем SSH подключение к серверу..."
 
-SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o BatchMode=yes -o TCPKeepAlive=yes"
+SSH_OPTS="-q -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o BatchMode=yes -o TCPKeepAlive=yes -o LogLevel=ERROR"
 
 if ssh -i "''' + env.SSH_KEY + '''" $SSH_OPTS \
     "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' \
-    "echo '[OK] SSH подключение успешно'"; then
+    "echo '[OK] SSH подключение успешно'" 2>/dev/null; then
     echo "[OK] SSH подключение работает"
 else
     echo "[ERROR] SSH подключение к серверу ''' + params.SERVER_ADDRESS + ''' не удалось"
@@ -379,9 +379,9 @@ fi
 echo ""
 echo "[INFO] Создание рабочей директории..."
 
-if ssh -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no \
+if ssh -i "''' + env.SSH_KEY + '''" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' \
-    "rm -rf /tmp/deploy-monitoring && mkdir -p /tmp/deploy-monitoring"; then
+    "rm -rf /tmp/deploy-monitoring && mkdir -p /tmp/deploy-monitoring" 2>/dev/null; then
     echo "[OK] Директория создана"
 else
     echo "[ERROR] Не удалось создать директорию"
@@ -392,27 +392,27 @@ fi
 echo ""
 echo "[INFO] Копирование файлов на сервер..."
 
-if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no \
+if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     install-monitoring-stack.sh \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/install-monitoring-stack.sh; then
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/install-monitoring-stack.sh 2>/dev/null; then
     echo "[OK] Скрипт скопирован"
 else
     echo "[ERROR] Не удалось скопировать скрипт"
     exit 1
 fi
 
-if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -r \
+if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -o LogLevel=ERROR -r \
     wrappers \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/; then
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/ 2>/dev/null; then
     echo "[OK] Wrappers скопированы"
 else
     echo "[ERROR] Не удалось скопировать wrappers"
     exit 1
 fi
 
-if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no \
+if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     temp_data_cred.json \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/; then
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/ 2>/dev/null; then
     echo "[OK] Credentials скопированы"
 else
     echo "[ERROR] Не удалось скопировать credentials"
@@ -429,8 +429,8 @@ set -e
 
 echo "[INFO] Проверка скопированных файлов..."
 
-ssh -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' << 'REMOTE_EOF'
+ssh -i "''' + env.SSH_KEY + '''" -q -T -o StrictHostKeyChecking=no -o LogLevel=ERROR \
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' 2>/dev/null << 'REMOTE_EOF'
 
 [ ! -f "/tmp/deploy-monitoring/install-monitoring-stack.sh" ] && echo "[ERROR] Скрипт не найден!" && exit 1
 [ ! -d "/tmp/deploy-monitoring/wrappers" ] && echo "[ERROR] Wrappers не найдены!" && exit 1
@@ -495,7 +495,7 @@ REMOTE_EOF
                         string(credentialsId: 'rlm-token', variable: 'RLM_TOKEN')
                     ]) {
                         def scriptTpl = '''#!/bin/bash
-ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$SSH_USER"@__SERVER_ADDRESS__ RLM_TOKEN="$RLM_TOKEN" /bin/bash -s <<'REMOTE_EOF'
+ssh -i "$SSH_KEY" -q -T -o StrictHostKeyChecking=no -o LogLevel=ERROR -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$SSH_USER"@__SERVER_ADDRESS__ RLM_TOKEN="$RLM_TOKEN" /bin/bash -s 2>/dev/null <<'REMOTE_EOF'
 set -e
 USERNAME=$(whoami)
 REMOTE_SCRIPT_PATH="/tmp/deploy-monitoring/install-monitoring-stack.sh"
@@ -587,8 +587,8 @@ REMOTE_EOF
                     echo "[STEP] Проверка результатов развертывания..."
                     withCredentials([sshUserPrivateKey(credentialsId: params.SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         writeFile file: 'check_results.sh', text: '''#!/bin/bash
-ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no \
-    "$SSH_USER"@''' + params.SERVER_ADDRESS + ''' << 'ENDSSH'
+ssh -i "$SSH_KEY" -q -T -o StrictHostKeyChecking=no -o LogLevel=ERROR \
+    "$SSH_USER"@''' + params.SERVER_ADDRESS + ''' 2>/dev/null << 'ENDSSH'
 echo "================================================"
 echo "ПРОВЕРКА СЕРВИСОВ:"
 echo "================================================"
@@ -628,9 +628,9 @@ ENDSSH
                     sh "rm -rf temp_data_cred.json"
                     withCredentials([sshUserPrivateKey(credentialsId: params.SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         writeFile file: 'cleanup_script.sh', text: '''#!/bin/bash
-ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no \
+ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "$SSH_USER"@''' + params.SERVER_ADDRESS + ''' \
-    "rm -rf /tmp/deploy-monitoring /tmp/monitoring_deployment.sh /tmp/temp_data_cred.json /opt/mon_distrib/mon_rpm_''' + env.DATE_INSTALL + '''/*.rpm" || true
+    "rm -rf /tmp/deploy-monitoring /tmp/monitoring_deployment.sh /tmp/temp_data_cred.json /opt/mon_distrib/mon_rpm_''' + env.DATE_INSTALL + '''/*.rpm" 2>/dev/null || true
 '''
                         sh 'chmod +x cleanup_script.sh'
                         withEnv(['SSH_KEY=' + env.SSH_KEY, 'SSH_USER=' + env.SSH_USER]) {
@@ -653,9 +653,9 @@ ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no \
                     def domainName = ''
                     withCredentials([sshUserPrivateKey(credentialsId: params.SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         writeFile file: 'get_domain.sh', text: '''#!/bin/bash
-ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no \
+ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "$SSH_USER"@''' + params.SERVER_ADDRESS + ''' \
-    "nslookup ''' + params.SERVER_ADDRESS + ''' 2>/dev/null | grep 'name =' | awk '{print \\$4}' | sed 's/\\.$//' || echo ''"
+    "nslookup ''' + params.SERVER_ADDRESS + ''' 2>/dev/null | grep 'name =' | awk '{print \\$4}' | sed 's/\\.$//' || echo ''" 2>/dev/null
 '''
                         sh 'chmod +x get_domain.sh'
                         withEnv(['SSH_KEY=' + env.SSH_KEY, 'SSH_USER=' + env.SSH_USER]) {
@@ -669,9 +669,9 @@ ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no \
                     def serverIp = ''
                     withCredentials([sshUserPrivateKey(credentialsId: params.SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         writeFile file: 'get_ip.sh', text: '''#!/bin/bash
-ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no \
+ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "$SSH_USER"@''' + params.SERVER_ADDRESS + ''' \
-    "hostname -I | awk '{print \\$1}' || echo ''' + (params.SERVER_ADDRESS ?: '') + '''"
+    "hostname -I | awk '{print \\$1}' || echo ''' + (params.SERVER_ADDRESS ?: '') + '''" 2>/dev/null
 '''
                         sh 'chmod +x get_ip.sh'
                         withEnv(['SSH_KEY=' + env.SSH_KEY, 'SSH_USER=' + env.SSH_USER]) {
