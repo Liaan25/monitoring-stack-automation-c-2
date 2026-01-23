@@ -514,10 +514,36 @@ if command -v dos2unix >/dev/null 2>&1; then
 else
     sed -i 's/\r$//' "$REMOTE_SCRIPT_PATH" || true
 fi
-# Извлекаем значения из переданного JSON (если есть)
-RPM_GRAFANA=$(jq -r '.rpm_url.grafana // empty' /tmp/temp_data_cred.json 2>/dev/null || echo "")
-RPM_PROMETHEUS=$(jq -r '.rpm_url.prometheus // empty' /tmp/temp_data_cred.json 2>/dev/null || echo "")
-RPM_HARVEST=$(jq -r '.rpm_url.harvest // empty' /tmp/temp_data_cred.json 2>/dev/null || echo "")
+# Извлекаем RPM URLs из data_sec.json (создается vault-agent после получения секретов из Vault)
+# Эти данные НЕ находятся в temp_data_cred.json (там только role_id/secret_id для vault-agent)
+VAULT_DATA_SEC="/opt/vault/conf/data_sec.json"
+
+# Ждем создания data_sec.json (если vault-agent работает, он должен создать этот файл)
+echo "[INFO] Ожидание создания $VAULT_DATA_SEC..."
+for i in {1..30}; do
+    if [ -f "$VAULT_DATA_SEC" ]; then
+        echo "[OK] Файл $VAULT_DATA_SEC найден"
+        break
+    fi
+    echo "[INFO] Ожидание $VAULT_DATA_SEC (попытка $i/30)..."
+    sleep 2
+done
+
+if [ ! -f "$VAULT_DATA_SEC" ]; then
+    echo "[ERROR] Файл $VAULT_DATA_SEC не найден после 60 секунд ожидания"
+    echo "[ERROR] Проверьте работу vault-agent: sudo systemctl status vault-agent"
+    exit 1
+fi
+
+# Извлекаем RPM URLs из data_sec.json
+RPM_GRAFANA=$(jq -r '.rpm_url.grafana // empty' "$VAULT_DATA_SEC" 2>/dev/null || echo "")
+RPM_PROMETHEUS=$(jq -r '.rpm_url.prometheus // empty' "$VAULT_DATA_SEC" 2>/dev/null || echo "")
+RPM_HARVEST=$(jq -r '.rpm_url.harvest // empty' "$VAULT_DATA_SEC" 2>/dev/null || echo "")
+
+echo "[INFO] RPM URLs из Vault:"
+echo "  Grafana: ${RPM_GRAFANA:0:80}..."
+echo "  Prometheus: ${RPM_PROMETHEUS:0:80}..."
+echo "  Harvest: ${RPM_HARVEST:0:80}..."
 
 echo "[INFO] Проверка passwordless sudo..."
 if ! sudo -n true 2>/dev/null; then
