@@ -13,7 +13,7 @@
 Файл `VERSION` в корне проекта содержит **базовую версию** проекта:
 
 ```
-3.0.1
+3.0.2
 ```
 
 Это основной источник истины для версии проекта.
@@ -34,7 +34,7 @@
 ```bash
 # Только версия
 ./tools/get-version.sh version
-# Output: 3.0.1
+# Output: 3.0.2
 
 # Короткая версия с коммитом
 ./tools/get-version.sh short
@@ -323,6 +323,7 @@ cat VERSION
 
 | Версия | Дата | Описание |
 |--------|------|----------|
+| 3.0.2 | 2026-01-23 | 🔄 Real-time Task Monitoring |
 | 3.0.1 | 2026-01-23 | 🧹 Documentation Optimization |
 | 3.0.0 | 2026-01-23 | 🎨 Professional Naming & Final Polish |
 | 2.8.0 | 2026-01-20 | 🔧 Bug Fixes & Stability |
@@ -353,7 +354,7 @@ cat VERSION
 
 <div align="center">
 
-**Monitoring Stack Automation v3.0.1**
+**Monitoring Stack Automation v3.0.2**
 
 *Automatic version tracking for reliable deployments*
 

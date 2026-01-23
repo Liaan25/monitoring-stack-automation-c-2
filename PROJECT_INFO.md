@@ -171,7 +171,7 @@ Project Name: Monitoring Stack Automation
 
 ### Текущая версия
 
-**v3.0.1** (2026-01-23)
+**v3.0.2** (2026-01-23)
 
 ### Semantic Versioning
 
@@ -180,7 +180,7 @@ Project Name: Monitoring Stack Automation
 ```
 MAJOR.MINOR.PATCH
 
-3.0.1
+3.0.2
 │ │ │
 │ │ └─── PATCH: bug fixes, документация
 │ └───── MINOR: новые фичи (обратная совместимость)
@@ -191,6 +191,7 @@ MAJOR.MINOR.PATCH
 
 | Версия | Дата | Описание |
 |--------|------|----------|
+| v3.0.2 | 2026-01-23 | 🔄 Real-time Task Monitoring |
 | v3.0.1 | 2026-01-23 | 🧹 Documentation Optimization |
 | v3.0.0 | 2026-01-23 | 🎨 Professional Naming & Final Polish |
 | v2.8.0 | 2026-01-20 | 🔧 Bug Fixes & Stability (Grafana HTTP 400) |
