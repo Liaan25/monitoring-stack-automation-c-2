@@ -1011,6 +1011,14 @@ EOF
 load_config_from_json() {
     print_step "Загрузка конфигурации из параметров Jenkins"
     ensure_working_directory
+    
+    # Диагностика: выводим значения переменных
+    print_info "Проверка переменных окружения:"
+    print_info "  NETAPP_API_ADDR='${NETAPP_API_ADDR:-<НЕ ЗАДАН>}'"
+    print_info "  GRAFANA_URL='${GRAFANA_URL:0:80}${GRAFANA_URL:80:+...}'"
+    print_info "  PROMETHEUS_URL='${PROMETHEUS_URL:0:80}${PROMETHEUS_URL:80:+...}'"
+    print_info "  HARVEST_URL='${HARVEST_URL:0:80}${HARVEST_URL:80:+...}'"
+    
     local missing=()
     [[ -z "$NETAPP_API_ADDR" ]] && missing+=("NETAPP_API_ADDR")
     [[ -z "$GRAFANA_URL" ]] && missing+=("GRAFANA_URL")
@@ -1018,12 +1026,21 @@ load_config_from_json() {
     [[ -z "$HARVEST_URL" ]] && missing+=("HARVEST_URL")
 
     if (( ${#missing[@]} > 0 )); then
-        print_error "Не заданы обязательные параметры Jenkins: ${missing[*]}"
+        print_error "❌ Не заданы обязательные параметры Jenkins: ${missing[*]}"
+        print_error ""
+        print_error "ДИАГНОСТИКА:"
+        print_error "  Эти переменные должны быть переданы из Jenkinsfile через 'sudo -n env ...'"
+        print_error "  Проверьте что Jenkinsfile правильно извлекает RPM URLs из /opt/vault/conf/data_sec.json"
+        print_error ""
+        print_error "РЕШЕНИЕ:"
+        print_error "  1. Убедитесь что vault-agent работает: sudo systemctl status vault-agent"
+        print_error "  2. Проверьте файл /opt/vault/conf/data_sec.json на наличие rpm_url"
+        print_error "  3. Убедитесь что Jenkinsfile использует АКТУАЛЬНУЮ версию из репозитория"
         exit 1
     fi
 
     NETAPP_POLLER_NAME=$(echo "$NETAPP_API_ADDR" | awk -F'.' '{print toupper(substr($1,1,1)) tolower(substr($1,2))}')
-    print_success "Конфигурация загружена из параметров Jenkins"
+    print_success "✅ Конфигурация загружена из параметров Jenkins"
     print_info "NETAPP_API_ADDR=$NETAPP_API_ADDR, NETAPP_POLLER_NAME=$NETAPP_POLLER_NAME"
 }
 
