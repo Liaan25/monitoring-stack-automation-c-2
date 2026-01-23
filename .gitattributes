@@ -1,0 +1,15 @@
+# Git attributes for consistent line endings
+* text=auto
+
+# Shell scripts should have LF line endings
+*.sh text eol=lf
+scripts/* text eol=lf
+
+# Jenkinsfile should have LF line endings
+Jenkinsfile text eol=lf
+
+# Documentation should have LF line endings
+*.md text eol=lf
+
+# Version file should have LF line endings
+VERSION text eol=lf
