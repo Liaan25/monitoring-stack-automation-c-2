@@ -3966,12 +3966,29 @@ main() {
     # При необходимости можно пропустить установку Vault через RLM,
     # если vault-agent уже установлен и настроен на целевом сервере.
     if [[ "${SKIP_VAULT_INSTALL:-false}" == "true" ]]; then
-        print_warning "SKIP_VAULT_INSTALL=true: пропускаем install_vault_via_rlm, используем уже установленный vault-agent"
+        print_warning "⚠️  SKIP_VAULT_INSTALL=true: пропускаем install_vault_via_rlm и setup_vault_config"
+        print_info "Предполагается что vault-agent уже установлен, настроен и работает"
+        print_info "Сертификаты должны быть доступны в /opt/vault/certs/"
+        
+        # Проверяем, что vault-agent действительно работает
+        if systemctl is-active --quiet vault-agent; then
+            print_success "✅ vault-agent работает"
+        else
+            print_warning "⚠️  vault-agent не активен! Проверьте сервис: systemctl status vault-agent"
+        fi
+        
+        # Проверяем наличие сертификатов
+        if [[ -f "/opt/vault/certs/server_bundle.pem" ]]; then
+            print_success "✅ Сертификаты найдены в /opt/vault/certs/"
+        else
+            print_warning "⚠️  Сертификаты не найдены в /opt/vault/certs/server_bundle.pem"
+            print_warning "Убедитесь что vault-agent получил сертификаты из Vault"
+        fi
     else
         install_vault_via_rlm
+        setup_vault_config
     fi
 
-    setup_vault_config
     load_config_from_json
 
     # При необходимости можно пропустить установку RPM-пакетов через RLM,

@@ -2,6 +2,9 @@ pipeline {
     agent none  // Не выбираем агент глобально - используем разные агенты для CI и CDL
 
     parameters {
+        // ВАЖНО: После изменения defaultValue параметров, Jenkins не обновляет их автоматически в UI.
+        // Для применения новых значений по умолчанию выполните "Build Now" один раз, затем используйте "Build with Parameters"
+        
         string(name: 'SERVER_ADDRESS',     defaultValue: params.SERVER_ADDRESS ?: '',     description: 'Адрес сервера для подключения по SSH')
         string(name: 'SSH_CREDENTIALS_ID', defaultValue: params.SSH_CREDENTIALS_ID ?: '', description: 'ID Jenkins Credentials (SSH Username with private key)')
         string(name: 'SEC_MAN_ADDR',       defaultValue: params.SEC_MAN_ADDR ?: '',       description: 'Адрес Vault для SecMan')
@@ -16,7 +19,7 @@ pipeline {
         string(name: 'GRAFANA_PORT',       defaultValue: params.GRAFANA_PORT ?: '3000',   description: 'Порт Grafana')
         string(name: 'PROMETHEUS_PORT',    defaultValue: params.PROMETHEUS_PORT ?: '9090',description: 'Порт Prometheus')
         string(name: 'RLM_API_URL',        defaultValue: params.RLM_API_URL ?: '',        description: 'Базовый URL RLM API (например, https://api.rlm.sbrf.ru)')
-        booleanParam(name: 'SKIP_VAULT_INSTALL', defaultValue: false, description: 'Пропустить установку Vault через RLM (использовать уже установленный vault-agent)')
+        booleanParam(name: 'SKIP_VAULT_INSTALL', defaultValue: true, description: '✅ Пропустить установку Vault через RLM (использовать уже установленный vault-agent)')
         booleanParam(name: 'SKIP_RPM_INSTALL', defaultValue: false, description: '⚠️ Пропустить установку RPM пакетов (Grafana, Prometheus, Harvest) через RLM - использовать уже установленные пакеты')
         booleanParam(name: 'SKIP_CI_CHECKS', defaultValue: true, description: '⚡ Пропустить CI диагностику (очистка, отладка, проверки сети) - только получение из Vault и развертывание')
         booleanParam(name: 'SKIP_DEPLOYMENT', defaultValue: false, description: '🚫 Пропустить весь CDL этап (копирование и развертывание на сервер) - только CI проверки')
