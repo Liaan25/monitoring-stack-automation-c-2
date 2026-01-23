@@ -514,41 +514,20 @@ if command -v dos2unix >/dev/null 2>&1; then
 else
     sed -i 's/\r$//' "$REMOTE_SCRIPT_PATH" || true
 fi
-# Извлекаем RPM URLs из data_sec.json (создается vault-agent после получения секретов из Vault)
-# Эти данные НЕ находятся в temp_data_cred.json (там только role_id/secret_id для vault-agent)
-VAULT_DATA_SEC="/opt/vault/conf/data_sec.json"
+# Извлекаем RPM URLs из temp_data_cred.json (создается Jenkins CI на основе данных из Vault)
+RPM_GRAFANA=$(jq -r '.rpm_url.grafana // empty' /tmp/temp_data_cred.json 2>/dev/null || echo "")
+RPM_PROMETHEUS=$(jq -r '.rpm_url.prometheus // empty' /tmp/temp_data_cred.json 2>/dev/null || echo "")
+RPM_HARVEST=$(jq -r '.rpm_url.harvest // empty' /tmp/temp_data_cred.json 2>/dev/null || echo "")
 
-# Ждем создания data_sec.json (если vault-agent работает, он должен создать этот файл)
-echo "[INFO] Ожидание создания $VAULT_DATA_SEC..."
-for i in {1..30}; do
-    if [ -f "$VAULT_DATA_SEC" ]; then
-        echo "[OK] Файл $VAULT_DATA_SEC найден"
-        break
-    fi
-    echo "[INFO] Ожидание $VAULT_DATA_SEC (попытка $i/30)..."
-    sleep 2
-done
-
-if [ ! -f "$VAULT_DATA_SEC" ]; then
-    echo "[ERROR] Файл $VAULT_DATA_SEC не найден после 60 секунд ожидания"
-    echo "[ERROR] Проверьте работу vault-agent: sudo systemctl status vault-agent"
-    exit 1
-fi
-
-# Извлекаем RPM URLs из data_sec.json
-RPM_GRAFANA=$(jq -r '.rpm_url.grafana // empty' "$VAULT_DATA_SEC" 2>/dev/null || echo "")
-RPM_PROMETHEUS=$(jq -r '.rpm_url.prometheus // empty' "$VAULT_DATA_SEC" 2>/dev/null || echo "")
-RPM_HARVEST=$(jq -r '.rpm_url.harvest // empty' "$VAULT_DATA_SEC" 2>/dev/null || echo "")
-
-echo "[INFO] RPM URLs из Vault:"
+echo "[INFO] RPM URLs из Vault (через temp_data_cred.json):"
 echo "  Grafana: $RPM_GRAFANA"
 echo "  Prometheus: $RPM_PROMETHEUS"
 echo "  Harvest: $RPM_HARVEST"
 
 if [[ -z "$RPM_GRAFANA" || -z "$RPM_PROMETHEUS" || -z "$RPM_HARVEST" ]]; then
     echo "[ERROR] Один или несколько RPM URLs пусты!"
-    echo "[ERROR] Содержимое $VAULT_DATA_SEC:"
-    cat "$VAULT_DATA_SEC" | jq '.'
+    echo "[ERROR] Содержимое /tmp/temp_data_cred.json:"
+    cat /tmp/temp_data_cred.json | jq '.'
     exit 1
 fi
 
