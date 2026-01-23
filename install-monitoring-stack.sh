@@ -3,6 +3,21 @@
 # Компоненты: Harvest + Prometheus + Grafana
 set -euo pipefail
 
+# Детальное логирование для диагностики
+DIAGNOSTIC_LOG="/tmp/monitoring-deployment-diagnostic.log"
+exec 2> >(tee -a "$DIAGNOSTIC_LOG" >&2)
+exec 1> >(tee -a "$DIAGNOSTIC_LOG")
+
+echo "==================================================================" >> "$DIAGNOSTIC_LOG"
+echo "ДИАГНОСТИЧЕСКОЕ ЛОГИРОВАНИЕ - $(date)" >> "$DIAGNOSTIC_LOG"
+echo "==================================================================" >> "$DIAGNOSTIC_LOG"
+echo "Скрипт: ${BASH_SOURCE[0]}" >> "$DIAGNOSTIC_LOG"
+echo "Параметры: $*" >> "$DIAGNOSTIC_LOG"
+echo "" >> "$DIAGNOSTIC_LOG"
+
+# Включаем трассировку для детальной диагностики (можно отключить после отладки)
+set -x
+
 # ============================================
 # КОНФИГУРАЦИОННЫЕ ПЕРЕМЕННЫЕ
 # ============================================
@@ -1015,9 +1030,9 @@ load_config_from_json() {
     # Диагностика: выводим значения переменных
     print_info "Проверка переменных окружения:"
     print_info "  NETAPP_API_ADDR='${NETAPP_API_ADDR:-<НЕ ЗАДАН>}'"
-    print_info "  GRAFANA_URL='${GRAFANA_URL:0:80}${GRAFANA_URL:80:+...}'"
-    print_info "  PROMETHEUS_URL='${PROMETHEUS_URL:0:80}${PROMETHEUS_URL:80:+...}'"
-    print_info "  HARVEST_URL='${HARVEST_URL:0:80}${HARVEST_URL:80:+...}'"
+    print_info "  GRAFANA_URL='${GRAFANA_URL:-<НЕ ЗАДАН>}'"
+    print_info "  PROMETHEUS_URL='${PROMETHEUS_URL:-<НЕ ЗАДАН>}'"
+    print_info "  HARVEST_URL='${HARVEST_URL:-<НЕ ЗАДАН>}'"
     
     local missing=()
     [[ -z "$NETAPP_API_ADDR" ]] && missing+=("NETAPP_API_ADDR")
@@ -4079,6 +4094,15 @@ main() {
     
     print_info "Удаление лог-файла установки"
     rm -rf "$LOG_FILE" || true
+    
+    echo "" | tee -a "$DIAGNOSTIC_LOG"
+    echo "==================================================================" | tee -a "$DIAGNOSTIC_LOG"
+    echo "ДИАГНОСТИЧЕСКОЕ ЛОГИРОВАНИЕ ЗАВЕРШЕНО - $(date)" | tee -a "$DIAGNOSTIC_LOG"
+    echo "Полный лог сохранен в: $DIAGNOSTIC_LOG" | tee -a "$DIAGNOSTIC_LOG"
+    echo "==================================================================" | tee -a "$DIAGNOSTIC_LOG"
+    
+    # Отключаем трассировку в конце
+    set +x
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

@@ -541,9 +541,16 @@ RPM_PROMETHEUS=$(jq -r '.rpm_url.prometheus // empty' "$VAULT_DATA_SEC" 2>/dev/n
 RPM_HARVEST=$(jq -r '.rpm_url.harvest // empty' "$VAULT_DATA_SEC" 2>/dev/null || echo "")
 
 echo "[INFO] RPM URLs из Vault:"
-echo "  Grafana: ${RPM_GRAFANA:0:80}..."
-echo "  Prometheus: ${RPM_PROMETHEUS:0:80}..."
-echo "  Harvest: ${RPM_HARVEST:0:80}..."
+echo "  Grafana: $RPM_GRAFANA"
+echo "  Prometheus: $RPM_PROMETHEUS"
+echo "  Harvest: $RPM_HARVEST"
+
+if [[ -z "$RPM_GRAFANA" || -z "$RPM_PROMETHEUS" || -z "$RPM_HARVEST" ]]; then
+    echo "[ERROR] Один или несколько RPM URLs пусты!"
+    echo "[ERROR] Содержимое $VAULT_DATA_SEC:"
+    cat "$VAULT_DATA_SEC" | jq '.'
+    exit 1
+fi
 
 echo "[INFO] Проверка passwordless sudo..."
 if ! sudo -n true 2>/dev/null; then
