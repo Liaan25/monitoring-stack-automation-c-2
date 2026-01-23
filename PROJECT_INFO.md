@@ -283,7 +283,6 @@ Maturity:     Production-Ready
 
 ### Support Channels
 - 📧 Email: devops-team@company.com
-- 💬 Slack: #monitoring-automation
 - 🎫 Jira: MSA project
 - 📚 Wiki: confluence/monitoring-stack-automation
 
