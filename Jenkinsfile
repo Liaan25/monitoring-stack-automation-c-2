@@ -37,14 +37,14 @@ pipeline {
                     echo "================================================"
                     
                     // Делаем скрипт исполняемым (на Linux агенте)
-                    sh 'chmod +x scripts/get-version.sh || true'
+                    sh 'chmod +x tools/get-version.sh || true'
                     
                     // Получаем и отображаем версию в виде баннера
-                    def versionBanner = sh(script: './scripts/get-version.sh banner', returnStdout: true).trim()
+                    def versionBanner = sh(script: './tools/get-version.sh banner', returnStdout: true).trim()
                     echo versionBanner
                     
                     // Сохраняем версионную информацию в переменные окружения
-                    def versionEnv = sh(script: './scripts/get-version.sh env', returnStdout: true).trim()
+                    def versionEnv = sh(script: './tools/get-version.sh env', returnStdout: true).trim()
                     versionEnv.split('\n').each { line ->
                         def parts = line.split('=', 2)
                         if (parts.size() == 2) {
@@ -53,7 +53,7 @@ pipeline {
                     }
                     
                     // Получаем короткую версию для использования в других местах
-                    env.VERSION_SHORT = sh(script: './scripts/get-version.sh short', returnStdout: true).trim()
+                    env.VERSION_SHORT = sh(script: './tools/get-version.sh short', returnStdout: true).trim()
                     
                     echo "[INFO] Версия проекта: ${env.VERSION_SHORT}"
                     echo "[INFO] Git commit: ${env.VERSION_GIT_COMMIT}"
@@ -327,7 +327,7 @@ pipeline {
                     echo "[STEP] Копирование скрипта и файлов на сервер..."
                     sh '''
                         # Проверка необходимых файлов
-                        [ ! -f "deploy_monitoring_script.sh" ] && echo "[ERROR] deploy_monitoring_script.sh не найден!" && exit 1
+                        [ ! -f "install-monitoring-stack.sh" ] && echo "[ERROR] install-monitoring-stack.sh не найден!" && exit 1
                         [ ! -d "wrappers" ] && echo "[ERROR] Папка wrappers не найдена!" && exit 1
                         [ ! -f "temp_data_cred.json" ] && echo "[ERROR] temp_data_cred.json не найден!" && exit 1
                         echo "[OK] Все файлы на месте"
@@ -341,8 +341,8 @@ pipeline {
 set -e
 
 # Автоматически генерируем лаунчеры
-if [ -f wrappers/generate_launchers.sh ]; then
-  /bin/bash wrappers/generate_launchers.sh
+if [ -f wrappers/build-integrity-checkers.sh ]; then
+  /bin/bash wrappers/build-integrity-checkers.sh
 fi
 '''
 
@@ -393,8 +393,8 @@ echo ""
 echo "[INFO] Копирование файлов на сервер..."
 
 if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no \
-    deploy_monitoring_script.sh \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/deploy_monitoring_script.sh; then
+    install-monitoring-stack.sh \
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/install-monitoring-stack.sh; then
     echo "[OK] Скрипт скопирован"
 else
     echo "[ERROR] Не удалось скопировать скрипт"
@@ -432,7 +432,7 @@ echo "[INFO] Проверка скопированных файлов..."
 ssh -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no \
     "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' << 'REMOTE_EOF'
 
-[ ! -f "/tmp/deploy-monitoring/deploy_monitoring_script.sh" ] && echo "[ERROR] Скрипт не найден!" && exit 1
+[ ! -f "/tmp/deploy-monitoring/install-monitoring-stack.sh" ] && echo "[ERROR] Скрипт не найден!" && exit 1
 [ ! -d "/tmp/deploy-monitoring/wrappers" ] && echo "[ERROR] Wrappers не найдены!" && exit 1
 [ ! -f "/tmp/temp_data_cred.json" ] && echo "[ERROR] Credentials не найдены!" && exit 1
 
@@ -498,7 +498,7 @@ REMOTE_EOF
 ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$SSH_USER"@__SERVER_ADDRESS__ RLM_TOKEN="$RLM_TOKEN" /bin/bash -s <<'REMOTE_EOF'
 set -e
 USERNAME=$(whoami)
-REMOTE_SCRIPT_PATH="/tmp/deploy-monitoring/deploy_monitoring_script.sh"
+REMOTE_SCRIPT_PATH="/tmp/deploy-monitoring/install-monitoring-stack.sh"
 if [ ! -f "$REMOTE_SCRIPT_PATH" ]; then
     echo "[ERROR] Скрипт $REMOTE_SCRIPT_PATH не найден" && exit 1
 fi

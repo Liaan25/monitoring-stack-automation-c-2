@@ -2,7 +2,7 @@
 # Скрипт-обёртка для настройки iptables под мониторинг.
 # Выполняет базовую валидацию параметров (белые списки портов/формат IP)
 # и применяет правила, эквивалентные функции configure_iptables
-# из deploy_monitoring_script.sh.
+# из install-monitoring-stack.sh.
 
 set -euo pipefail
 

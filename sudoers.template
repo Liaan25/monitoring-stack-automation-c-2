@@ -39,13 +39,13 @@ ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /tmp/deploy-monitoring/monitoring_depl
 ############################################################
 
 # Пример: обёртка для настройки iptables (белый список портов)
-#ALL=(ALL:ALL) NOEXEC: NOPASSWD: /opt/monitoring/bin/iptables_wrapper.sh
+#ALL=(ALL:ALL) NOEXEC: NOPASSWD: /opt/monitoring/bin/firewall-manager.sh
 
 # Пример: обёртка для работы с RLM (curl к RLM API с валидацией)
-#ALL=(ALL:ALL) NOEXEC: NOPASSWD: /opt/monitoring/bin/rlm_task_wrapper.sh
+#ALL=(ALL:ALL) NOEXEC: NOPASSWD: /opt/monitoring/bin/rlm-api-wrapper.sh
 
 # Пример: обёртка для безопасной записи конфигов
-#ALL=(ALL:ALL) NOEXEC: NOPASSWD: /opt/monitoring/bin/config_writer.sh
+#ALL=(ALL:ALL) NOEXEC: NOPASSWD: /opt/monitoring/bin/config-writer.sh
 
 
 ############################################################
@@ -86,7 +86,7 @@ ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /tmp/deploy-monitoring/monitoring_depl
 
 ############################################################
 # 4. Справочный список Linux-команд из скрипта
-#    deploy_monitoring_script.sh
+#    install-monitoring-stack.sh
 #
 # ВНИМАНИЕ:
 # - Это НЕ готовые строки для sudoers.

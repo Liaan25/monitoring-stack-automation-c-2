@@ -20,7 +20,7 @@
 
 ### 2. Скрипт get-version.sh
 
-Скрипт `scripts/get-version.sh` собирает полную информацию о версии:
+Скрипт `tools/get-version.sh` собирает полную информацию о версии:
 
 - **Базовая версия** из файла VERSION
 - **Git commit hash** (короткий и полный)
@@ -33,27 +33,27 @@
 
 ```bash
 # Только версия
-./scripts/get-version.sh version
+./tools/get-version.sh version
 # Output: 3.0.1
 
 # Короткая версия с коммитом
-./scripts/get-version.sh short
+./tools/get-version.sh short
 # Output: 3.0.0-a1b2c3d
 
 # Полная версия (по умолчанию)
-./scripts/get-version.sh
+./tools/get-version.sh
 # Output: 3.0.0-a1b2c3d (master, 2026-01-23 14:30:00 UTC)
 
 # JSON формат
-./scripts/get-version.sh json
+./tools/get-version.sh json
 # Output: {"version":"3.0.0","git_commit":"a1b2c3d",...}
 
 # Environment variables формат
-./scripts/get-version.sh env
+./tools/get-version.sh env
 # Output: VERSION_BASE=3.0.0\nVERSION_GIT_COMMIT=a1b2c3d\n...
 
 # Красивый баннер для консоли
-./scripts/get-version.sh banner
+./tools/get-version.sh banner
 # Output: ASCII banner с полной информацией
 ```
 
@@ -193,7 +193,7 @@ echo "3.1.0" > VERSION
 
 ```bash
 # Скрипт для автоматического обновления версии
-./scripts/update-version-in-docs.sh 3.1.0
+./tools/update-version-in-docs.sh 3.1.0
 ```
 
 ### Шаг 5: Commit и tag
@@ -272,7 +272,7 @@ INSTALL_DATE=20260123_143500
 cat VERSION
 
 # Полная информация
-./scripts/get-version.sh banner
+./tools/get-version.sh banner
 ```
 
 ---
@@ -286,9 +286,9 @@ cat VERSION
 **Решение:**
 
 1. Проверьте наличие файла `VERSION` в корне проекта
-2. Убедитесь, что `scripts/get-version.sh` исполняемый:
+2. Убедитесь, что `tools/get-version.sh` исполняемый:
    ```bash
-   chmod +x scripts/get-version.sh
+   chmod +x tools/get-version.sh
    ```
 3. Проверьте что git репозиторий доступен в Jenkins workspace
 4. Проверьте логи Jenkins для ошибок в стейдже "CI: Информация о версии проекта"
