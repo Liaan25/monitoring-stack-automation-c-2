@@ -3,7 +3,7 @@
 # Принимает путь к файлу из белого списка и читает содержимое из stdin.
 #
 # Использование:
-#   config_writer.sh /etc/grafana/grafana.ini <<EOF
+#   config-writer.sh /etc/grafana/grafana.ini <<EOF
 #   ...контент...
 #   EOF
 

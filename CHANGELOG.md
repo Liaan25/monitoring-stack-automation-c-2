@@ -13,7 +13,15 @@
   - Более точное название для утилит и вспомогательных инструментов
   - Обновлены все ссылки в документации и Jenkinsfile
 
-### Fixed
+### Fixed - Critical Migration Issues
+- 🔥 **КРИТИЧЕСКОЕ:** Обновлены имена лаунчеров во всех скриптах (54 места)
+  - `wrappers/build-integrity-checkers.sh`: все генерируемые лаунчеры (4 места)
+    - `iptables_launcher.sh` → `firewall-manager_launcher.sh`
+    - `rlm_launcher.sh` → `rlm-api-wrapper_launcher.sh`
+    - `grafana_launcher.sh` → `grafana-api-wrapper_launcher.sh`
+    - `config_writer_launcher.sh` → `config-writer_launcher.sh`
+  - `install-monitoring-stack.sh`: все вызовы лаунчеров (50 мест)
+  - `wrappers/config-writer.sh`: пример в комментарии
 - 🐛 **Критическое исправление:** Обновлены все ссылки на переименованные файлы
   - `Jenkinsfile`: `deploy_monitoring_script.sh` → `install-monitoring-stack.sh` (5 мест)
   - `Jenkinsfile`: `generate_launchers.sh` → `build-integrity-checkers.sh`

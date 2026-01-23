@@ -148,12 +148,12 @@ install_vault_via_rlm() {
         ]
       }')
 
-    if [[ ! -x "$WRAPPERS_DIR/rlm_launcher.sh" ]]; then
-        print_error "Лаунчер rlm_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+    if [[ ! -x "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" ]]; then
+        print_error "Лаунчер rlm-api-wrapper_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
         exit 1
     fi
 
-    vault_create_resp=$(printf '%s' "$payload" | "$WRAPPERS_DIR/rlm_launcher.sh" create_vault_task "$RLM_API_URL" "$RLM_TOKEN") || true
+    vault_create_resp=$(printf '%s' "$payload" | "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" create_vault_task "$RLM_API_URL" "$RLM_TOKEN") || true
 
     vault_task_id=$(echo "$vault_create_resp" | jq -r '.id // empty')
     if [[ -z "$vault_task_id" || "$vault_task_id" == "null" ]]; then
@@ -172,7 +172,7 @@ install_vault_via_rlm() {
 
     while [[ $attempt -le $max_attempts ]]; do
         local vault_status_resp
-        vault_status_resp=$("$WRAPPERS_DIR/rlm_launcher.sh" get_vault_status "$RLM_API_URL" "$RLM_TOKEN" "$vault_task_id") || true
+        vault_status_resp=$("$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" get_vault_status "$RLM_API_URL" "$RLM_TOKEN" "$vault_task_id") || true
 
         if echo "$vault_status_resp" | grep -q '"status":"success"'; then
             # финальное сообщение на новой строке
@@ -291,8 +291,8 @@ ensure_user_in_as_admin() {
         exit 1
     fi
 
-    if [[ ! -x "$WRAPPERS_DIR/rlm_launcher.sh" ]]; then
-        print_error "Лаунчер rlm_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+    if [[ ! -x "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" ]]; then
+        print_error "Лаунчер rlm-api-wrapper_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
         exit 1
     fi
 
@@ -324,7 +324,7 @@ ensure_user_in_as_admin() {
         }')
 
     create_resp=$(printf '%s' "$payload" | \
-        "$WRAPPERS_DIR/rlm_launcher.sh" create_group_task "$RLM_API_URL" "$RLM_TOKEN") || true
+        "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" create_group_task "$RLM_API_URL" "$RLM_TOKEN") || true
 
     group_task_id=$(echo "$create_resp" | jq -r '.id // empty')
     if [[ -z "$group_task_id" || "$group_task_id" == "null" ]]; then
@@ -342,7 +342,7 @@ ensure_user_in_as_admin() {
 
     while [[ $attempt -le $max_attempts ]]; do
         local status_resp
-        status_resp=$("$WRAPPERS_DIR/rlm_launcher.sh" get_group_status "$RLM_API_URL" "$RLM_TOKEN" "$group_task_id") || true
+        status_resp=$("$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" get_group_status "$RLM_API_URL" "$RLM_TOKEN" "$group_task_id") || true
 
         if echo "$status_resp" | grep -q '"status":"success"'; then
             echo
@@ -438,8 +438,8 @@ ensure_mon_sys_in_grafana_group() {
         exit 1
     fi
 
-    if [[ ! -x "$WRAPPERS_DIR/rlm_launcher.sh" ]]; then
-        print_error "Лаунчер rlm_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+    if [[ ! -x "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" ]]; then
+        print_error "Лаунчер rlm-api-wrapper_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
         exit 1
     fi
 
@@ -471,7 +471,7 @@ ensure_mon_sys_in_grafana_group() {
         }')
 
     create_resp=$(printf '%s' "$payload" | \
-        "$WRAPPERS_DIR/rlm_launcher.sh" create_group_task "$RLM_API_URL" "$RLM_TOKEN") || true
+        "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" create_group_task "$RLM_API_URL" "$RLM_TOKEN") || true
 
     group_task_id=$(echo "$create_resp" | jq -r '.id // empty')
     if [[ -z "$group_task_id" || "$group_task_id" == "null" ]]; then
@@ -489,7 +489,7 @@ ensure_mon_sys_in_grafana_group() {
 
     while [[ $attempt -le $max_attempts ]]; do
         local status_resp
-        status_resp=$("$WRAPPERS_DIR/rlm_launcher.sh" get_group_status "$RLM_API_URL" "$RLM_TOKEN" "$group_task_id") || true
+        status_resp=$("$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" get_group_status "$RLM_API_URL" "$RLM_TOKEN" "$group_task_id") || true
 
         if echo "$status_resp" | grep -q '"status":"success"'; then
             echo
@@ -670,7 +670,7 @@ save_environment_variables() {
     local env_dir
     env_dir=$(dirname "$ENV_FILE")
     mkdir -p "$env_dir"
-    "$WRAPPERS_DIR/config_writer_launcher.sh" "$ENV_FILE" << EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" "$ENV_FILE" << EOF
 # Мониторинговые переменные сервера (создано $(date))
 MONITOR_SERVER_IP=$SERVER_IP
 MONITOR_SERVER_DOMAIN=$SERVER_DOMAIN
@@ -1003,7 +1003,7 @@ EOF
 EOF
         fi
 
-    } | "$WRAPPERS_DIR/config_writer_launcher.sh" "$VAULT_AGENT_HCL"
+    } | "$WRAPPERS_DIR/config-writer_launcher.sh" "$VAULT_AGENT_HCL"
 
     # Перезапуск vault-agent с проверкой
     print_step "Перезапуск vault-agent"
@@ -1261,7 +1261,7 @@ configure_grafana_ini() {
         return 0
     fi
     
-    "$WRAPPERS_DIR/config_writer_launcher.sh" /etc/grafana/grafana.ini << EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" /etc/grafana/grafana.ini << EOF
 [server]
 protocol = https
 http_port = ${GRAFANA_PORT}
@@ -1290,7 +1290,7 @@ EOF
 configure_grafana_ini_no_ssl() {
     print_step "Конфигурация grafana.ini (без SSL)"
     ensure_working_directory
-    "$WRAPPERS_DIR/config_writer_launcher.sh" /etc/grafana/grafana.ini << EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" /etc/grafana/grafana.ini << EOF
 [server]
 protocol = http
 http_port = ${GRAFANA_PORT}
@@ -1315,7 +1315,7 @@ configure_prometheus_files() {
         return 0
     fi
     
-    "$WRAPPERS_DIR/config_writer_launcher.sh" /etc/prometheus/web-config.yml << EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" /etc/prometheus/web-config.yml << EOF
 tls_server_config:
   cert_file: /etc/prometheus/cert/server.crt
   key_file: /etc/prometheus/cert/server.key
@@ -1333,7 +1333,7 @@ tls_server_config:
 EOF
     # ИСПРАВЛЕНО: Создаем prometheus.env только для справки
     # User-systemd unit файл НЕ использует этот файл - параметры берутся напрямую из скрипта
-    "$WRAPPERS_DIR/config_writer_launcher.sh" /etc/prometheus/prometheus.env << EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" /etc/prometheus/prometheus.env << EOF
 # ВНИМАНИЕ: Этот файл создается только для справки
 # Systemd unit файл monitoring-prometheus.service НЕ читает его
 # Все параметры запуска задаются напрямую в ExecStart
@@ -1347,7 +1347,7 @@ EOF
 configure_prometheus_files_no_ssl() {
     print_step "Создание файлов для Prometheus (без SSL)"
     ensure_working_directory
-    "$WRAPPERS_DIR/config_writer_launcher.sh" /etc/prometheus/prometheus.env << EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" /etc/prometheus/prometheus.env << EOF
 PROMETHEUS_OPTS="--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/lib/prometheus/data --web.console.templates=/etc/prometheus/consoles --web.console.libraries=/etc/prometheus/console_libraries --web.external-url=http://${SERVER_DOMAIN}:${PROMETHEUS_PORT}/ --web.listen-address=0.0.0.0:${PROMETHEUS_PORT}"
 EOF
     chown prometheus:prometheus /etc/prometheus/prometheus.env
@@ -1389,12 +1389,12 @@ create_rlm_install_tasks() {
             service: "LINUX_RPM_INSTALLER",
             items: [ { table_id: "linuxrpminstallertable", invsvm_ip: $ip } ]
           }')
-        if [[ ! -x "$WRAPPERS_DIR/rlm_launcher.sh" ]]; then
-            print_error "Лаунчер rlm_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+        if [[ ! -x "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" ]]; then
+            print_error "Лаунчер rlm-api-wrapper_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
             exit 1
         fi
 
-        response=$(printf '%s' "$payload" | "$WRAPPERS_DIR/rlm_launcher.sh" create_rpm_task "$RLM_API_URL" "$RLM_TOKEN") || true
+        response=$(printf '%s' "$payload" | "$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" create_rpm_task "$RLM_API_URL" "$RLM_TOKEN") || true
 
         # Получаем ID задачи
         local task_id
@@ -1417,7 +1417,7 @@ create_rlm_install_tasks() {
 
         while [[ $attempt -le $max_attempts ]]; do
             local status_response
-            status_response=$("$WRAPPERS_DIR/rlm_launcher.sh" get_rpm_status "$RLM_API_URL" "$RLM_TOKEN" "$task_id") || true
+            status_response=$("$WRAPPERS_DIR/rlm-api-wrapper_launcher.sh" get_rpm_status "$RLM_API_URL" "$RLM_TOKEN" "$task_id") || true
 
             if echo "$status_response" | grep -q '"status":"success"'; then
                 echo
@@ -1591,7 +1591,7 @@ HARVEST_CONFIG_EOF
     print_success "Конфигурация Harvest обновлена в $HARVEST_CONFIG"
 
     print_info "Создание systemd сервиса для Harvest"
-    "$WRAPPERS_DIR/config_writer_launcher.sh" /etc/systemd/system/harvest.service << 'HARVEST_SERVICE_EOF'
+    "$WRAPPERS_DIR/config-writer_launcher.sh" /etc/systemd/system/harvest.service << 'HARVEST_SERVICE_EOF'
 [Unit]
 Description=NetApp Harvest Poller
 After=network.target
@@ -1624,7 +1624,7 @@ configure_prometheus() {
     
     local prometheus_config="/etc/prometheus/prometheus.yml"
 
-    "$WRAPPERS_DIR/config_writer_launcher.sh" "$prometheus_config" << PROMETHEUS_CONFIG_EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" "$prometheus_config" << PROMETHEUS_CONFIG_EOF
 global:
   scrape_interval: 60s
   evaluation_interval: 60s
@@ -1841,14 +1841,14 @@ configure_grafana_datasource() {
         return 1
     fi
 
-    if [[ ! -x "$WRAPPERS_DIR/grafana_launcher.sh" ]]; then
-        print_error "Лаунчер grafana_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+    if [[ ! -x "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ]]; then
+        print_error "Лаунчер grafana-api-wrapper_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
         exit 1
     fi
 
     # Проверяем наличие источника данных через API (по токену)
     local ds_status
-    ds_status=$("$WRAPPERS_DIR/grafana_launcher.sh" ds_status_by_name "$grafana_url" "$GRAFANA_BEARER_TOKEN" "prometheus")
+    ds_status=$("$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ds_status_by_name "$grafana_url" "$GRAFANA_BEARER_TOKEN" "prometheus")
 
     local create_payload update_payload http_code
     create_payload=$(jq -n \
@@ -1864,7 +1864,7 @@ configure_grafana_datasource() {
             '{name:"prometheus", type:"prometheus", access:"proxy", url:$url, isDefault:true,
               jsonData:{httpMethod:"POST", serverName:$sn, tlsAuth:true, tlsAuthWithCACert:true, tlsSkipVerify:false}}')
         http_code=$(printf '%s' "$update_payload" | \
-            "$WRAPPERS_DIR/grafana_launcher.sh" ds_update_by_name "$grafana_url" "$GRAFANA_BEARER_TOKEN" "prometheus")
+            "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ds_update_by_name "$grafana_url" "$GRAFANA_BEARER_TOKEN" "prometheus")
         if [[ "$http_code" == "200" || "$http_code" == "202" ]]; then
             print_success "Prometheus Data Source обновлён через API"
         else
@@ -1872,7 +1872,7 @@ configure_grafana_datasource() {
         fi
     else
         http_code=$(printf '%s' "$create_payload" | \
-            "$WRAPPERS_DIR/grafana_launcher.sh" ds_create "$grafana_url" "$GRAFANA_BEARER_TOKEN")
+            "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ds_create "$grafana_url" "$GRAFANA_BEARER_TOKEN")
         if [[ "$http_code" == "200" || "$http_code" == "202" ]]; then
             print_success "Prometheus Data Source создан через API"
         else
@@ -1980,8 +1980,8 @@ ensure_grafana_token() {
         return 1
     fi
 
-    if [[ ! -x "$WRAPPERS_DIR/grafana_launcher.sh" ]]; then
-        print_error "Лаунчер grafana_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+    if [[ ! -x "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ]]; then
+        print_error "Лаунчер grafana-api-wrapper_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
         exit 1
     fi
 
@@ -1993,7 +1993,7 @@ ensure_grafana_token() {
     # Создаём сервисный аккаунт и извлекаем его id из ответа
     payload_sa=$(jq -n --arg name "$service_account_name" --arg role "Admin" '{name:$name, role:$role}')
     resp=$(printf '%s' "$payload_sa" | \
-        "$WRAPPERS_DIR/grafana_launcher.sh" sa_create "$grafana_url" "$grafana_user" "$grafana_password") || true
+        "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" sa_create "$grafana_url" "$grafana_user" "$grafana_password") || true
     http_code="${resp##*$'\n'}"
     body="${resp%$'\n'*}"
 
@@ -2002,7 +2002,7 @@ ensure_grafana_token() {
     elif [[ "$http_code" == "409" ]]; then
         # Уже существует; найдём id по имени
         local list_resp list_code list_body
-        list_resp=$("$WRAPPERS_DIR/grafana_launcher.sh" sa_list "$grafana_url" "$grafana_user" "$grafana_password") || true
+        list_resp=$("$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" sa_list "$grafana_url" "$grafana_user" "$grafana_password") || true
         list_code="${list_resp##*$'\n'}"
         list_body="${list_resp%$'\n'*}"
         if [[ "$list_code" == "200" ]]; then
@@ -2022,7 +2022,7 @@ ensure_grafana_token() {
     payload_token=$(jq -n --arg name "$token_name" '{name:$name}')
     local tok_resp tok_code tok_body token_value
     tok_resp=$(printf '%s' "$payload_token" | \
-        "$WRAPPERS_DIR/grafana_launcher.sh" sa_token_create "$grafana_url" "$grafana_user" "$grafana_password" "$sa_id") || true
+        "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" sa_token_create "$grafana_url" "$grafana_user" "$grafana_password" "$sa_id") || true
     tok_code="${tok_resp##*$'\n'}"
     tok_body="${tok_resp%$'\n'*}"
 
@@ -3524,13 +3524,13 @@ configure_iptables() {
     print_step "Настройка iptables для мониторинговых сервисов"
     ensure_working_directory
 
-    if [[ ! -x "$WRAPPERS_DIR/iptables_launcher.sh" ]]; then
-        print_error "Лаунчер iptables_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+    if [[ ! -x "$WRAPPERS_DIR/firewall-manager_launcher.sh" ]]; then
+        print_error "Лаунчер firewall-manager_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
         exit 1
     fi
 
     # Передаём параметры в обёртку, где реализована валидация и настройка
-    "$WRAPPERS_DIR/iptables_launcher.sh" \
+    "$WRAPPERS_DIR/firewall-manager_launcher.sh" \
         "$PROMETHEUS_PORT" \
         "$GRAFANA_PORT" \
         "$HARVEST_UNIX_PORT" \
@@ -3747,14 +3747,14 @@ import_grafana_dashboards() {
         ensure_grafana_token || return 1
     fi
 
-    if [[ ! -x "$WRAPPERS_DIR/grafana_launcher.sh" ]]; then
-        print_error "Лаунчер grafana_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
+    if [[ ! -x "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ]]; then
+        print_error "Лаунчер grafana-api-wrapper_launcher.sh не найден или не исполняемый в $WRAPPERS_DIR"
         return 1
     fi
 
     print_info "Получение UID источника данных..."
     local ds_resp uid_datasource
-    ds_resp=$("$WRAPPERS_DIR/grafana_launcher.sh" ds_list "$grafana_url" "$GRAFANA_BEARER_TOKEN" || true)
+    ds_resp=$("$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ds_list "$grafana_url" "$GRAFANA_BEARER_TOKEN" || true)
     uid_datasource=$(echo "$ds_resp" | jq -er '.[0].uid' 2>/dev/null || echo "")
 
     if [[ "$uid_datasource" == "null" || -z "$uid_datasource" ]]; then
@@ -3767,12 +3767,12 @@ import_grafana_dashboards() {
     # Устанавливаем secureJsonData (mTLS) через API
     print_info "Обновление Prometheus datasource через API для установки mTLS..."
     local ds_obj ds_id payload update_resp
-    ds_obj=$("$WRAPPERS_DIR/grafana_launcher.sh" ds_get_by_name "$grafana_url" "$GRAFANA_BEARER_TOKEN" "prometheus" || true)
+    ds_obj=$("$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ds_get_by_name "$grafana_url" "$GRAFANA_BEARER_TOKEN" "prometheus" || true)
     ds_id=$(echo "$ds_obj" | jq -er '.id' 2>/dev/null || echo "")
 
     if [[ -z "$ds_id" ]]; then
         print_warning "Не удалось получить ID источника данных по имени, пробуем список"
-        ds_id=$("$WRAPPERS_DIR/grafana_launcher.sh" ds_list "$grafana_url" "$GRAFANA_BEARER_TOKEN" | jq -er '.[] | select(.name=="prometheus") | .id' 2>/dev/null || echo "")
+        ds_id=$("$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ds_list "$grafana_url" "$GRAFANA_BEARER_TOKEN" | jq -er '.[] | select(.name=="prometheus") | .id' 2>/dev/null || echo "")
     fi
 
     if [[ -n "$ds_id" ]]; then
@@ -3786,7 +3786,7 @@ import_grafana_dashboards() {
               jsonData:{httpMethod:"POST", serverName:$sn, tlsAuth:true, tlsAuthWithCACert:true, tlsSkipVerify:false},
               secureJsonData:{tlsClientCert:$tlsClientCert, tlsClientKey:$tlsClientKey, tlsCACert:$tlsCACert}}')
         update_resp=$(printf '%s' "$payload" | \
-            "$WRAPPERS_DIR/grafana_launcher.sh" ds_update_by_id "$grafana_url" "$GRAFANA_BEARER_TOKEN" "$ds_id")
+            "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" ds_update_by_id "$grafana_url" "$GRAFANA_BEARER_TOKEN" "$ds_id")
         if [[ "$update_resp" == "200" || "$update_resp" == "202" ]]; then
             print_success "Datasource обновлен через API (mTLS установлен)"
         else
@@ -3929,10 +3929,10 @@ verify_installation() {
         local http_url="http://127.0.0.1:${port}"
 
         # Сначала пробуем HTTPS
-        if "$WRAPPERS_DIR/grafana_launcher.sh" http_check "$https_url" "https"; then
+        if "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" http_check "$https_url" "https"; then
             print_success "$name: HTTPS ответ получен"
         # Если HTTPS не работает, пробуем HTTP
-        elif "$WRAPPERS_DIR/grafana_launcher.sh" http_check "$http_url" "http"; then
+        elif "$WRAPPERS_DIR/grafana-api-wrapper_launcher.sh" http_check "$http_url" "http"; then
             print_success "$name: HTTP ответ получен"
         else
             print_warning "$name: HTTP/HTTPS ответ не получен (но сервис работает по портам)"
@@ -3949,7 +3949,7 @@ verify_installation() {
 save_installation_state() {
     print_step "Сохранение состояния установки"
     ensure_working_directory
-    "$WRAPPERS_DIR/config_writer_launcher.sh" "$STATE_FILE" << STATE_EOF
+    "$WRAPPERS_DIR/config-writer_launcher.sh" "$STATE_FILE" << STATE_EOF
 # Состояние установки мониторинговой системы
 DEPLOYMENT_VERSION=$DEPLOY_VERSION
 DEPLOYMENT_GIT_COMMIT=$DEPLOY_GIT_COMMIT
