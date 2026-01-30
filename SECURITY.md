@@ -93,11 +93,11 @@
 - В Jenkins пайплайне (этап `prep_clone.sh`) после `git clone` вызывается:
   - `cd deploy-monitoring/wrappers && ./build-integrity-checkers.sh`
   - тем самым на каждый коммит/запуск пайплайна лаунчеры автоматически пересобираются с актуальными sha256.
-- На целевом сервере скрипты и лаунчеры устанавливаются, например, в `/opt/monitoring/bin`, а в `sudoers` выдаются права **только** на лаунчеры:
-  - `/opt/monitoring/bin/firewall-manager_launcher.sh`
-  - `/opt/monitoring/bin/rlm-api-wrapper_launcher.sh`
-  - `/opt/monitoring/bin/grafana-api-wrapper_launcher.sh`
-  - `/opt/monitoring/bin/config-writer_launcher.sh`
+- На целевом сервере скрипты и лаунчеры устанавливаются в `/usr/local/bin/wrappers/`, а в `sudoers` выдаются права **только** на лаунчеры:
+  - `/usr/local/bin/wrappers/firewall-manager_launcher.sh`
+  - `/usr/local/bin/wrappers/rlm-api-wrapper_launcher.sh`
+  - `/usr/local/bin/wrappers/grafana-api-wrapper_launcher.sh`
+  - `/usr/local/bin/wrappers/config-writer_launcher.sh`
 - Таким образом:
   - пользователь с sudo не может заменить содержимое обёрток, оставив прежние правила в `sudoers` — любая подмена кода будет обнаружена по несоответствию sha256;
   - ИБ может в любой момент:

@@ -7,7 +7,7 @@
 ## 📋 Quick Overview
 
 **Project Name:** Monitoring Stack Automation  
-**Version:** 3.0.8  
+**Version:** 3.0.9  
 **Type:** CI/CD automation for deploying Harvest → Prometheus → Grafana monitoring stack  
 **Main Technologies:** Jenkins Pipeline, Bash, HashiCorp Vault, Security Wrappers  
 
