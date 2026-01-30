@@ -3,21 +3,6 @@
 # Компоненты: Harvest + Prometheus + Grafana
 set -euo pipefail
 
-# Детальное логирование для диагностики
-DIAGNOSTIC_LOG="/tmp/monitoring-deployment-diagnostic.log"
-exec 2> >(tee -a "$DIAGNOSTIC_LOG" >&2)
-exec 1> >(tee -a "$DIAGNOSTIC_LOG")
-
-echo "==================================================================" >> "$DIAGNOSTIC_LOG"
-echo "ДИАГНОСТИЧЕСКОЕ ЛОГИРОВАНИЕ - $(date)" >> "$DIAGNOSTIC_LOG"
-echo "==================================================================" >> "$DIAGNOSTIC_LOG"
-echo "Скрипт: ${BASH_SOURCE[0]}" >> "$DIAGNOSTIC_LOG"
-echo "Параметры: $*" >> "$DIAGNOSTIC_LOG"
-echo "" >> "$DIAGNOSTIC_LOG"
-
-# Включаем трассировку для детальной диагностики (можно отключить после отладки)
-set -x
-
 # ============================================
 # КОНФИГУРАЦИОННЫЕ ПЕРЕМЕННЫЕ
 # ============================================
@@ -90,6 +75,37 @@ KAE=""
 if [[ -n "${NAMESPACE_CI:-}" ]]; then
     KAE=$(echo "$NAMESPACE_CI" | cut -d'_' -f2)
 fi
+
+# ============================================
+# ДИАГНОСТИЧЕСКОЕ ЛОГИРОВАНИЕ
+# ============================================
+# Диагностический лог для отладки RLM задач
+DIAGNOSTIC_RLM_LOG="/tmp/diagnostic_rlm_task.log"
+
+# Инициализация diagnostic log
+init_diagnostic_log() {
+    cat > "$DIAGNOSTIC_RLM_LOG" << DIAG_HEADER
+================================================================
+  DIAGNOSTIC LOG - RLM Task Troubleshooting
+================================================================
+Timestamp:    $(date '+%Y-%m-%d %H:%M:%S %Z')
+Script:       ${BASH_SOURCE[0]}
+Deploy Ver:   ${DEPLOY_VERSION:-unknown}
+Git Commit:   ${DEPLOY_GIT_COMMIT:-unknown}
+Build Date:   ${DEPLOY_BUILD_DATE:-unknown}
+================================================================
+
+DIAG_HEADER
+}
+
+# Функция записи в diagnostic log
+write_diagnostic() {
+    echo "[$(date '+%H:%M:%S')] $*" >> "$DIAGNOSTIC_RLM_LOG" 2>/dev/null || true
+}
+
+# ============================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================
 
 format_elapsed_minutes() {
     local now_ts elapsed elapsed_min
@@ -1027,13 +1043,6 @@ load_config_from_json() {
     print_step "Загрузка конфигурации из параметров Jenkins"
     ensure_working_directory
     
-    # Диагностика: выводим значения переменных
-    print_info "Проверка переменных окружения:"
-    print_info "  NETAPP_API_ADDR='${NETAPP_API_ADDR:-<НЕ ЗАДАН>}'"
-    print_info "  GRAFANA_URL='${GRAFANA_URL:-<НЕ ЗАДАН>}'"
-    print_info "  PROMETHEUS_URL='${PROMETHEUS_URL:-<НЕ ЗАДАН>}'"
-    print_info "  HARVEST_URL='${HARVEST_URL:-<НЕ ЗАДАН>}'"
-    
     local missing=()
     [[ -z "$NETAPP_API_ADDR" ]] && missing+=("NETAPP_API_ADDR")
     [[ -z "$GRAFANA_URL" ]] && missing+=("GRAFANA_URL")
@@ -1041,21 +1050,14 @@ load_config_from_json() {
     [[ -z "$HARVEST_URL" ]] && missing+=("HARVEST_URL")
 
     if (( ${#missing[@]} > 0 )); then
-        print_error "❌ Не заданы обязательные параметры Jenkins: ${missing[*]}"
-        print_error ""
-        print_error "ДИАГНОСТИКА:"
-        print_error "  Эти переменные должны быть переданы из Jenkinsfile через 'sudo -n env ...'"
-        print_error "  Проверьте что Jenkinsfile правильно извлекает RPM URLs из /opt/vault/conf/data_sec.json"
-        print_error ""
-        print_error "РЕШЕНИЕ:"
-        print_error "  1. Убедитесь что vault-agent работает: sudo systemctl status vault-agent"
-        print_error "  2. Проверьте файл /opt/vault/conf/data_sec.json на наличие rpm_url"
-        print_error "  3. Убедитесь что Jenkinsfile использует АКТУАЛЬНУЮ версию из репозитория"
+        print_error "Не заданы обязательные параметры Jenkins: ${missing[*]}"
+        print_error "Эти переменные должны быть переданы через 'sudo -n env' из Jenkinsfile"
+        write_diagnostic "ERROR: Не заданы параметры: ${missing[*]}"
         exit 1
     fi
 
     NETAPP_POLLER_NAME=$(echo "$NETAPP_API_ADDR" | awk -F'.' '{print toupper(substr($1,1,1)) tolower(substr($1,2))}')
-    print_success "✅ Конфигурация загружена из параметров Jenkins"
+    print_success "Конфигурация загружена из параметров Jenkins"
     print_info "NETAPP_API_ADDR=$NETAPP_API_ADDR, NETAPP_POLLER_NAME=$NETAPP_POLLER_NAME"
 }
 
@@ -1372,8 +1374,16 @@ EOF
 create_rlm_install_tasks() {
     print_step "Создание задач RLM для установки пакетов"
     ensure_working_directory
+    
+    write_diagnostic ">>> ВХОД в create_rlm_install_tasks()"
+    write_diagnostic "  RLM_TOKEN: ${RLM_TOKEN:+<задан - длина ${#RLM_TOKEN}>}"
+    write_diagnostic "  RLM_API_URL: ${RLM_API_URL:-<не задан>}"
+    write_diagnostic "  GRAFANA_URL: ${GRAFANA_URL:-<не задан>}"
+    write_diagnostic "  PROMETHEUS_URL: ${PROMETHEUS_URL:-<не задан>}"
+    write_diagnostic "  HARVEST_URL: ${HARVEST_URL:-<не задан>}"
 
     if [[ -z "$RLM_TOKEN" || -z "$RLM_API_URL" ]]; then
+        write_diagnostic "ERROR: RLM API токен или URL не задан"
         print_error "RLM API токен или URL не задан (RLM_TOKEN/RLM_API_URL)"
         exit 1
     fi
@@ -1519,6 +1529,8 @@ HARVEST_EOF
     chmod +x /etc/profile.d/harvest.sh
     export PATH=$PATH:/usr/local/bin:/opt/harvest/bin:/opt/harvest
     print_success "PATH настроен для доступа к harvest из любого места"
+    
+    write_diagnostic "<<< ВЫХОД из create_rlm_install_tasks() - успешно"
 }
 
 setup_certificates_after_install() {
@@ -3985,6 +3997,32 @@ main() {
     log_message "=== Начало развертывания мониторинговой системы ${DEPLOY_VERSION} ==="
     ensure_working_directory
     print_header
+    
+    # Инициализация diagnostic log
+    init_diagnostic_log
+    write_diagnostic "========================================="
+    write_diagnostic "ДИАГНОСТИКА ВХОДНЫХ ПАРАМЕТРОВ"
+    write_diagnostic "========================================="
+    write_diagnostic "SKIP_VAULT_INSTALL=${SKIP_VAULT_INSTALL:-<не задан>}"
+    write_diagnostic "SKIP_RPM_INSTALL=${SKIP_RPM_INSTALL:-<не задан>}"
+    write_diagnostic "SKIP_CI_CHECKS=${SKIP_CI_CHECKS:-<не задан>}"
+    write_diagnostic "SKIP_DEPLOYMENT=${SKIP_DEPLOYMENT:-<не задан>}"
+    write_diagnostic ""
+    write_diagnostic "RLM_API_URL=${RLM_API_URL:-<не задан>}"
+    write_diagnostic "RLM_TOKEN=${RLM_TOKEN:+<задан - длина ${#RLM_TOKEN}>}"
+    write_diagnostic ""
+    write_diagnostic "GRAFANA_URL=${GRAFANA_URL:-<не задан>}"
+    write_diagnostic "PROMETHEUS_URL=${PROMETHEUS_URL:-<не задан>}"
+    write_diagnostic "HARVEST_URL=${HARVEST_URL:-<не задан>}"
+    write_diagnostic ""
+    write_diagnostic "NETAPP_API_ADDR=${NETAPP_API_ADDR:-<не задан>}"
+    write_diagnostic "SERVER_IP=${SERVER_IP:-<не определен>}"
+    write_diagnostic "SERVER_DOMAIN=${SERVER_DOMAIN:-<не определен>}"
+    write_diagnostic "========================================="
+    write_diagnostic ""
+    
+    print_info "📝 Диагностика записывается в: $DIAGNOSTIC_RLM_LOG"
+    
     check_sudo
     check_dependencies
     check_and_close_ports
@@ -3996,42 +4034,44 @@ main() {
 
     # При необходимости можно пропустить установку Vault через RLM,
     # если vault-agent уже установлен и настроен на целевом сервере.
+    write_diagnostic "========================================="
+    write_diagnostic "ПРОВЕРКА: SKIP_VAULT_INSTALL"
+    write_diagnostic "========================================="
+    write_diagnostic "Значение переменной: '${SKIP_VAULT_INSTALL:-<не задан>}'"
     if [[ "${SKIP_VAULT_INSTALL:-false}" == "true" ]]; then
-        print_warning "⚠️  SKIP_VAULT_INSTALL=true: пропускаем install_vault_via_rlm и setup_vault_config"
-        print_info "Предполагается что vault-agent уже установлен, настроен и работает"
-        print_info "Сертификаты должны быть доступны в /opt/vault/certs/"
-        
-        # Проверяем, что vault-agent действительно работает
-        if systemctl is-active --quiet vault-agent; then
-            print_success "✅ vault-agent работает"
-        else
-            print_warning "⚠️  vault-agent не активен! Проверьте сервис: systemctl status vault-agent"
-        fi
-        
-        # Проверяем наличие сертификатов
-        if [[ -f "/opt/vault/certs/server_bundle.pem" ]]; then
-            print_success "✅ Сертификаты найдены в /opt/vault/certs/"
-        else
-            print_warning "⚠️  Сертификаты не найдены в /opt/vault/certs/server_bundle.pem"
-            print_warning "Убедитесь что vault-agent получил сертификаты из Vault"
-        fi
+        write_diagnostic "Результат: TRUE - пропускаем install_vault_via_rlm"
+        write_diagnostic "Действие: используем уже установленный vault-agent"
+        print_warning "SKIP_VAULT_INSTALL=true: пропускаем install_vault_via_rlm"
     else
+        write_diagnostic "Результат: FALSE - запускаем install_vault_via_rlm"
         install_vault_via_rlm
-        setup_vault_config
+        write_diagnostic "install_vault_via_rlm выполнена"
     fi
+    write_diagnostic ""
+    
+    setup_vault_config
+    write_diagnostic "setup_vault_config выполнена"
 
     load_config_from_json
 
     # При необходимости можно пропустить установку RPM-пакетов через RLM,
     # чтобы ускорить отладку (по аналогии с SKIP_VAULT_INSTALL).
+    write_diagnostic "========================================="
+    write_diagnostic "ПРОВЕРКА: SKIP_RPM_INSTALL"
+    write_diagnostic "========================================="
+    write_diagnostic "Значение переменной: '${SKIP_RPM_INSTALL:-<не задан>}'"
     if [[ "${SKIP_RPM_INSTALL:-false}" == "true" ]]; then
+        write_diagnostic "Результат: TRUE - пропускаем create_rlm_install_tasks"
+        write_diagnostic "Причина: предполагается что пакеты уже установлены"
         print_warning "⚠️  SKIP_RPM_INSTALL=true: пропускаем установку RPM пакетов через RLM"
         print_info "Предполагаем что Grafana, Prometheus и Harvest уже установлены на целевом сервере"
-        print_success "🎉 ВСЕ ЗАДАЧИ УСПЕШНО ЗАВЕРШЕНЫ!"
-        print_info "Переходим к настройке установленных пакетов..."
     else
+        write_diagnostic "Результат: FALSE - запускаем create_rlm_install_tasks"
+        write_diagnostic "Действие: создаем RLM задачи для Grafana, Prometheus, Harvest"
         create_rlm_install_tasks
+        write_diagnostic "create_rlm_install_tasks выполнена успешно"
     fi
+    write_diagnostic ""
 
     setup_certificates_after_install
     configure_harvest
@@ -4092,17 +4132,20 @@ main() {
     echo
     echo "================================================================"
     
+    # Финализируем diagnostic log
+    write_diagnostic "========================================="
+    write_diagnostic "DEPLOYMENT ЗАВЕРШЕН"
+    write_diagnostic "Статус: SUCCESS"
+    write_diagnostic "Elapsed time: $elapsed_m"
+    write_diagnostic "========================================="
+    
+    echo
+    echo "================================================================"
+    echo "📝 Диагностический лог сохранен в: $DIAGNOSTIC_RLM_LOG"
+    echo "================================================================"
+    
     print_info "Удаление лог-файла установки"
     rm -rf "$LOG_FILE" || true
-    
-    echo "" | tee -a "$DIAGNOSTIC_LOG"
-    echo "==================================================================" | tee -a "$DIAGNOSTIC_LOG"
-    echo "ДИАГНОСТИЧЕСКОЕ ЛОГИРОВАНИЕ ЗАВЕРШЕНО - $(date)" | tee -a "$DIAGNOSTIC_LOG"
-    echo "Полный лог сохранен в: $DIAGNOSTIC_LOG" | tee -a "$DIAGNOSTIC_LOG"
-    echo "==================================================================" | tee -a "$DIAGNOSTIC_LOG"
-    
-    # Отключаем трассировку в конце
-    set +x
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
