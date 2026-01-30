@@ -2,7 +2,7 @@
 
 > *Система автоматизированного развертывания стека мониторинга для enterprise*
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](PROJECT_INFO.md)
+[![Version](https://img.shields.io/badge/version-3.0.6-blue.svg)](PROJECT_INFO.md)
 [![Status](https://img.shields.io/badge/status-production--ready-green.svg)](README.md)
 [![Security](https://img.shields.io/badge/security-enterprise--grade-brightgreen.svg)](SECURITY.md)
 
@@ -258,7 +258,7 @@ ss -tln | grep -E ':(3000|9090|12990|12991)'
 ├── README.md                          # 📖 Этот файл
 ├── SECURITY.md                        # 🔒 Документация по безопасности для ИБ
 ├── VERSIONING.md                      # 🔖 Руководство по версионированию
-├── VERSION                            # 📌 Версия проекта (3.0.0)
+├── VERSION                            # 📌 Версия проекта (3.0.6)
 ├── Jenkinsfile                        # 🔄 Декларативный CI/CD пайплайн
 ├── install-monitoring-stack.sh        # 🚀 Основной скрипт развертывания (4025 строк)
 ├── sudoers.example                    # ⚙️  Минимальный рабочий sudoers
@@ -1069,6 +1069,15 @@ A:
 ---
 
 ## 📝 Changelog
+
+### Version 3.0.6 (2026-01-30) - 🎯 Оптимизация вывода и форматирования
+
+**Улучшения:**
+- 🎨 Упрощен вывод RLM мониторинга: удалены прогресс-бары
+- 📝 Каждая попытка выводится отдельной строкой (автоматическое обновление в Jenkins)
+- 📐 Исправлено выравнивание всех ASCII табличек
+- 🧹 Убрана избыточная буферизация и синхронизация
+- ✨ Более простой и читаемый вывод в консоли
 
 ### Version 3.0.2 (2026-01-23) - 🔄 Real-time Task Monitoring Improvements
 

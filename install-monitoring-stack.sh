@@ -3,10 +3,6 @@
 # Компоненты: Harvest + Prometheus + Grafana
 set -euo pipefail
 
-# Отключаем буферизацию для real-time вывода в Jenkins
-export PYTHONUNBUFFERED=1
-stty -echo 2>/dev/null || true
-
 # ============================================
 # КОНФИГУРАЦИОННЫЕ ПЕРЕМЕННЫЕ
 # ============================================
@@ -133,9 +129,6 @@ print_header() {
 }
 
 install_vault_via_rlm() {
-    # Принудительная синхронизация вывода для Jenkins
-    exec 1>&1 2>&2
-    
     print_step "Установка и настройка Vault через RLM"
     ensure_working_directory
 
@@ -210,9 +203,9 @@ install_vault_via_rlm() {
 
     echo ""
     echo "┌────────────────────────────────────────────────────────────┐"
-    printf "│  🔐 УСТАНОВКА: %-42s│\n" "Vault-agent"
-    printf "│  Task ID: %-48s│\n" "$vault_task_id"
-    printf "│  Max attempts: %-3d (интервал: %2dс)                       │\n" "$max_attempts" "$interval_sec"
+    printf "│  🔐 УСТАНОВКА: %-41s │\n" "Vault-agent"
+    printf "│  Task ID: %-47s │\n" "$vault_task_id"
+    printf "│  Max attempts: %-3d (интервал: %2dс)                      │\n" "$max_attempts" "$interval_sec"
     echo "└────────────────────────────────────────────────────────────┘"
     echo ""
 
@@ -225,12 +218,10 @@ install_vault_via_rlm() {
         [[ -z "$current_v_status" ]] && current_v_status="in_progress"
 
         # Расчет времени
-        local now_ts elapsed_sec elapsed_min remaining_attempts remaining_time
+        local now_ts elapsed_sec elapsed_min
         now_ts=$(date +%s)
         elapsed_sec=$(( now_ts - start_ts ))
         elapsed_min=$(awk -v s="$elapsed_sec" 'BEGIN{printf "%.1f", s/60}')
-        remaining_attempts=$(( max_attempts - attempt + 1 ))
-        remaining_time=$(( remaining_attempts * interval_sec / 60 ))
 
         # Цветной статус-индикатор
         local status_icon="⏳"
@@ -240,25 +231,12 @@ install_vault_via_rlm() {
             in_progress) status_icon="🔄" ;;
         esac
 
-        # Прогресс-бар (простой текстовый)
-        local progress=$(( attempt * 100 / max_attempts ))
-        local bar_length=20
-        local filled=$(( progress * bar_length / 100 ))
-        local bar=""
-        for ((i=0; i<filled; i++)); do bar+="█"; done
-        for ((i=filled; i<bar_length; i++)); do bar+="░"; done
-
-        # Вывод прогресса
-        printf "\r🔐 %-11s │ [%s] %3d%% │ Попытка %3d/%-3d │ %s %-12s │ ⏱️  %5.1fм / ~%2dм макс" \
-            "Vault-agent" "$bar" "$progress" "$attempt" "$max_attempts" "$status_icon" "$current_v_status" "$elapsed_min" "$((max_attempts * interval_sec / 60))"
-
-        # Принудительная синхронизация
-        sync || true
+        # Вывод прогресса (каждая попытка - новая строка для Jenkins)
+        echo "🔐 Vault-agent │ Попытка $attempt/$max_attempts │ Статус: $current_v_status $status_icon │ Время: ${elapsed_min}м (${elapsed_sec}с)"
 
         write_diagnostic "Vault RLM: attempt=$attempt/$max_attempts, status=$current_v_status, elapsed=${elapsed_min}m"
 
         if echo "$vault_status_resp" | grep -q '"status":"success"'; then
-            echo ""
             echo "✅ Vault-agent УСТАНОВЛЕН за ${elapsed_min}м (${elapsed_sec}с)"
             echo ""
             write_diagnostic "Vault RLM: SUCCESS after ${elapsed_min}m"
@@ -318,9 +296,6 @@ log_message() {
 
 # Универсальная функция добавления пользователя в группу as-admin через RLM
 ensure_user_in_as_admin() {
-    # Принудительная синхронизация вывода для Jenkins
-    exec 1>&1 2>&2
-    
     local user="$1"
 
     if [[ -z "$user" ]]; then
@@ -395,10 +370,10 @@ ensure_user_in_as_admin() {
 
     echo ""
     echo "┌────────────────────────────────────────────────────────────┐"
-    printf "│  👤 ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ В AS-ADMIN                   │\n"
-    printf "│  User: %-51s│\n" "$user"
-    printf "│  Task ID: %-48s│\n" "$group_task_id"
-    printf "│  Max attempts: %-3d (интервал: %2dс)                       │\n" "$max_attempts" "$interval_sec"
+    printf "│  👤 ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ В AS-ADMIN                  │\n"
+    printf "│  User: %-50s │\n" "$user"
+    printf "│  Task ID: %-47s │\n" "$group_task_id"
+    printf "│  Max attempts: %-3d (интервал: %2dс)                      │\n" "$max_attempts" "$interval_sec"
     echo "└────────────────────────────────────────────────────────────┘"
     echo ""
 
@@ -423,15 +398,10 @@ ensure_user_in_as_admin() {
             in_progress) status_icon="🔄" ;;
         esac
 
-        # Вывод прогресса
-        printf "\r👤 User: %-15s │ Попытка %3d/%-3d │ Статус: %-12s %s │ Время: %5.1fм (%4dс)" \
-            "$user" "$attempt" "$max_attempts" "$current_status" "$status_icon" "$elapsed_min" "$elapsed_sec"
-
-        # Принудительная синхронизация
-        sync || true
+        # Вывод прогресса (каждая попытка - новая строка для Jenkins)
+        echo "👤 User: $user │ Попытка $attempt/$max_attempts │ Статус: $current_status $status_icon │ Время: ${elapsed_min}м (${elapsed_sec}с)"
 
         if echo "$status_resp" | grep -q '"status":"success"'; then
-            echo ""
             echo "✅ Пользователь $user добавлен в as-admin за ${elapsed_min}м (${elapsed_sec}с)"
             echo ""
             break
@@ -1420,9 +1390,6 @@ EOF
 }
 
 create_rlm_install_tasks() {
-    # Принудительная синхронизация вывода для Jenkins
-    exec 1>&1 2>&2
-    
     print_step "Создание задач RLM для установки пакетов"
     ensure_working_directory
     
@@ -1491,9 +1458,9 @@ create_rlm_install_tasks() {
 
         echo ""
         echo "┌────────────────────────────────────────────────────────────┐"
-        printf "│  📦 УСТАНОВКА: %-42s│\n" "$name"
-        printf "│  Task ID: %-48s│\n" "$task_id"
-        printf "│  Max attempts: %-3d (интервал: %2dс)                       │\n" "$max_attempts" "$interval_sec"
+        printf "│  📦 УСТАНОВКА: %-41s │\n" "$name"
+        printf "│  Task ID: %-47s │\n" "$task_id"
+        printf "│  Max attempts: %-3d (интервал: %2dс)                      │\n" "$max_attempts" "$interval_sec"
         echo "└────────────────────────────────────────────────────────────┘"
         echo ""
 
@@ -1506,12 +1473,10 @@ create_rlm_install_tasks() {
             [[ -z "$current_status" ]] && current_status="in_progress"
 
             # Расчет времени
-            local now_ts elapsed_sec elapsed_min remaining_attempts remaining_time
+            local now_ts elapsed_sec elapsed_min
             now_ts=$(date +%s)
             elapsed_sec=$(( now_ts - start_ts ))
             elapsed_min=$(awk -v s="$elapsed_sec" 'BEGIN{printf "%.1f", s/60}')
-            remaining_attempts=$(( max_attempts - attempt + 1 ))
-            remaining_time=$(( remaining_attempts * interval_sec / 60 ))
 
             # Цветной статус-индикатор
             local status_icon="⏳"
@@ -1521,25 +1486,12 @@ create_rlm_install_tasks() {
                 in_progress) status_icon="🔄" ;;
             esac
 
-            # Прогресс-бар (простой текстовый)
-            local progress=$(( attempt * 100 / max_attempts ))
-            local bar_length=20
-            local filled=$(( progress * bar_length / 100 ))
-            local bar=""
-            for ((i=0; i<filled; i++)); do bar+="█"; done
-            for ((i=filled; i<bar_length; i++)); do bar+="░"; done
-
-            # Вывод прогресса
-            printf "\r📦 %-11s │ [%s] %3d%% │ Попытка %3d/%-3d │ %s %-12s │ ⏱️  %5.1fм / ~%2dм макс" \
-                "$name" "$bar" "$progress" "$attempt" "$max_attempts" "$status_icon" "$current_status" "$elapsed_min" "$((max_attempts * interval_sec / 60))"
-
-            # Принудительная синхронизация
-            sync || true
+            # Вывод прогресса (каждая попытка - новая строка для Jenkins)
+            echo "📦 $name │ Попытка $attempt/$max_attempts │ Статус: $current_status $status_icon │ Время: ${elapsed_min}м (${elapsed_sec}с)"
 
             write_diagnostic "$name RLM: attempt=$attempt/$max_attempts, status=$current_status, elapsed=${elapsed_min}m"
 
             if echo "$status_response" | grep -q '"status":"success"'; then
-                echo ""
                 echo "✅ $name УСТАНОВЛЕН за ${elapsed_min}м (${elapsed_sec}с)"
                 echo ""
                 write_diagnostic "$name RLM: SUCCESS after ${elapsed_min}m"
@@ -1583,7 +1535,7 @@ create_rlm_install_tasks() {
 
     echo ""
     echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║      ✅ ВСЕ RPM ПАКЕТЫ УСПЕШНО УСТАНОВЛЕНЫ                ║"
+    echo "║      ✅ ВСЕ RPM ПАКЕТЫ УСПЕШНО УСТАНОВЛЕНЫ               ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo ""
     echo "📊 Установленные пакеты:"
