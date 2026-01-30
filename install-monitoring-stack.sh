@@ -210,9 +210,9 @@ install_vault_via_rlm() {
 
     echo ""
     echo "┌────────────────────────────────────────────────────────────┐"
-    echo "│  🔐 УСТАНОВКА VAULT-AGENT ЧЕРЕЗ RLM                       │"
-    echo "│  Task ID: $vault_task_id                                   │"
-    echo "│  Max attempts: $max_attempts (интервал: ${interval_sec}с)  │"
+    printf "│  🔐 УСТАНОВКА: %-42s│\n" "Vault-agent"
+    printf "│  Task ID: %-48s│\n" "$vault_task_id"
+    printf "│  Max attempts: %-3d (интервал: %2dс)                       │\n" "$max_attempts" "$interval_sec"
     echo "└────────────────────────────────────────────────────────────┘"
     echo ""
 
@@ -225,10 +225,12 @@ install_vault_via_rlm() {
         [[ -z "$current_v_status" ]] && current_v_status="in_progress"
 
         # Расчет времени
-        local now_ts elapsed_sec elapsed_min
+        local now_ts elapsed_sec elapsed_min remaining_attempts remaining_time
         now_ts=$(date +%s)
         elapsed_sec=$(( now_ts - start_ts ))
         elapsed_min=$(awk -v s="$elapsed_sec" 'BEGIN{printf "%.1f", s/60}')
+        remaining_attempts=$(( max_attempts - attempt + 1 ))
+        remaining_time=$(( remaining_attempts * interval_sec / 60 ))
 
         # Цветной статус-индикатор
         local status_icon="⏳"
@@ -238,9 +240,17 @@ install_vault_via_rlm() {
             in_progress) status_icon="🔄" ;;
         esac
 
+        # Прогресс-бар (простой текстовый)
+        local progress=$(( attempt * 100 / max_attempts ))
+        local bar_length=20
+        local filled=$(( progress * bar_length / 100 ))
+        local bar=""
+        for ((i=0; i<filled; i++)); do bar+="█"; done
+        for ((i=filled; i<bar_length; i++)); do bar+="░"; done
+
         # Вывод прогресса
-        printf "\r🔐 Vault-agent │ Попытка %3d/%-3d │ Статус: %-12s %s │ Время: %5.1fм (%4dс)" \
-            "$attempt" "$max_attempts" "$current_v_status" "$status_icon" "$elapsed_min" "$elapsed_sec"
+        printf "\r🔐 %-11s │ [%s] %3d%% │ Попытка %3d/%-3d │ %s %-12s │ ⏱️  %5.1fм / ~%2dм макс" \
+            "Vault-agent" "$bar" "$progress" "$attempt" "$max_attempts" "$status_icon" "$current_v_status" "$elapsed_min" "$((max_attempts * interval_sec / 60))"
 
         # Принудительная синхронизация
         sync || true
@@ -249,7 +259,7 @@ install_vault_via_rlm() {
 
         if echo "$vault_status_resp" | grep -q '"status":"success"'; then
             echo ""
-            echo "✅ VAULT-AGENT УСТАНОВЛЕН за ${elapsed_min}м (${elapsed_sec}с)"
+            echo "✅ Vault-agent УСТАНОВЛЕН за ${elapsed_min}м (${elapsed_sec}с)"
             echo ""
             write_diagnostic "Vault RLM: SUCCESS after ${elapsed_min}m"
             sleep 10
@@ -385,10 +395,10 @@ ensure_user_in_as_admin() {
 
     echo ""
     echo "┌────────────────────────────────────────────────────────────┐"
-    echo "│  👤 ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ В AS-ADMIN                    │"
-    printf "│  User: %-49s │\n" "$user"
-    printf "│  Task ID: %-46s │\n" "$group_task_id"
-    printf "│  Max attempts: %-3d (интервал: %2dс)                      │\n" "$max_attempts" "$interval_sec"
+    printf "│  👤 ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ В AS-ADMIN                   │\n"
+    printf "│  User: %-51s│\n" "$user"
+    printf "│  Task ID: %-48s│\n" "$group_task_id"
+    printf "│  Max attempts: %-3d (интервал: %2dс)                       │\n" "$max_attempts" "$interval_sec"
     echo "└────────────────────────────────────────────────────────────┘"
     echo ""
 
@@ -1481,9 +1491,9 @@ create_rlm_install_tasks() {
 
         echo ""
         echo "┌────────────────────────────────────────────────────────────┐"
-        printf "│  📦 УСТАНОВКА: %-40s │\n" "$name"
-        printf "│  Task ID: %-46s │\n" "$task_id"
-        printf "│  Max attempts: %-3d (интервал: %2dс)                      │\n" "$max_attempts" "$interval_sec"
+        printf "│  📦 УСТАНОВКА: %-42s│\n" "$name"
+        printf "│  Task ID: %-48s│\n" "$task_id"
+        printf "│  Max attempts: %-3d (интервал: %2dс)                       │\n" "$max_attempts" "$interval_sec"
         echo "└────────────────────────────────────────────────────────────┘"
         echo ""
 
