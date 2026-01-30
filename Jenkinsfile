@@ -384,7 +384,7 @@ echo "[INFO] Создание рабочей директории..."
 
 if ssh -i "''' + env.SSH_KEY + '''" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' \
-    "rm -rf /tmp/deploy-monitoring && mkdir -p /tmp/deploy-monitoring" 2>/dev/null; then
+    "sudo mkdir -p /opt/monitoring/bin && sudo chown $(whoami):$(whoami) /opt/monitoring/bin" 2>/dev/null; then
     echo "[OK] Директория создана"
 else
     echo "[ERROR] Не удалось создать директорию"
@@ -397,7 +397,7 @@ echo "[INFO] Копирование файлов на сервер..."
 
 if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     install-monitoring-stack.sh \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/install-monitoring-stack.sh 2>/dev/null; then
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/opt/monitoring/bin/install-monitoring-stack.sh 2>/dev/null; then
     echo "[OK] Скрипт скопирован"
 else
     echo "[ERROR] Не удалось скопировать скрипт"
@@ -406,7 +406,7 @@ fi
 
 if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -o LogLevel=ERROR -r \
     wrappers \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/deploy-monitoring/ 2>/dev/null; then
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/opt/monitoring/bin/ 2>/dev/null; then
     echo "[OK] Wrappers скопированы"
 else
     echo "[ERROR] Не удалось скопировать wrappers"
@@ -435,8 +435,8 @@ echo "[INFO] Проверка скопированных файлов..."
 ssh -i "''' + env.SSH_KEY + '''" -q -T -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' 2>/dev/null << 'REMOTE_EOF'
 
-[ ! -f "/tmp/deploy-monitoring/install-monitoring-stack.sh" ] && echo "[ERROR] Скрипт не найден!" && exit 1
-[ ! -d "/tmp/deploy-monitoring/wrappers" ] && echo "[ERROR] Wrappers не найдены!" && exit 1
+[ ! -f "/opt/monitoring/bin/install-monitoring-stack.sh" ] && echo "[ERROR] Скрипт не найден!" && exit 1
+[ ! -d "/opt/monitoring/bin/wrappers" ] && echo "[ERROR] Wrappers не найдены!" && exit 1
 [ ! -f "/tmp/temp_data_cred.json" ] && echo "[ERROR] Credentials не найдены!" && exit 1
 
 echo "[OK] Все файлы на месте"
@@ -501,7 +501,7 @@ REMOTE_EOF
 ssh -i "$SSH_KEY" -q -T -o StrictHostKeyChecking=no -o LogLevel=ERROR -o BatchMode=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 "$SSH_USER"@__SERVER_ADDRESS__ RLM_TOKEN="$RLM_TOKEN" /bin/bash -s 2>/dev/null <<'REMOTE_EOF'
 set -e
 USERNAME=$(whoami)
-REMOTE_SCRIPT_PATH="/tmp/deploy-monitoring/install-monitoring-stack.sh"
+REMOTE_SCRIPT_PATH="/opt/monitoring/bin/install-monitoring-stack.sh"
 if [ ! -f "$REMOTE_SCRIPT_PATH" ]; then
     echo "[ERROR] Скрипт $REMOTE_SCRIPT_PATH не найден" && exit 1
 fi
@@ -645,7 +645,7 @@ ENDSSH
                         writeFile file: 'cleanup_script.sh', text: '''#!/bin/bash
 ssh -i "$SSH_KEY" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "$SSH_USER"@''' + params.SERVER_ADDRESS + ''' \
-    "rm -rf /tmp/deploy-monitoring /tmp/monitoring_deployment.sh /tmp/temp_data_cred.json /opt/mon_distrib/mon_rpm_''' + env.DATE_INSTALL + '''/*.rpm" 2>/dev/null || true
+    "rm -rf /tmp/monitoring_deployment.sh /tmp/temp_data_cred.json /opt/mon_distrib/mon_rpm_''' + env.DATE_INSTALL + '''/*.rpm" 2>/dev/null || true
 '''
                         sh 'chmod +x cleanup_script.sh'
                         withEnv(['SSH_KEY=' + env.SSH_KEY, 'SSH_USER=' + env.SSH_USER]) {

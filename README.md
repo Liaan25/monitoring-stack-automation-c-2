@@ -2,7 +2,7 @@
 
 > *Система автоматизированного развертывания стека мониторинга для enterprise*
 
-[![Version](https://img.shields.io/badge/version-3.0.6-blue.svg)](PROJECT_INFO.md)
+[![Version](https://img.shields.io/badge/version-3.0.8-blue.svg)](PROJECT_INFO.md)
 [![Status](https://img.shields.io/badge/status-production--ready-green.svg)](README.md)
 [![Security](https://img.shields.io/badge/security-enterprise--grade-brightgreen.svg)](SECURITY.md)
 
@@ -239,6 +239,13 @@ vault kv put secret/${NAMESPACE_CI}/sberca_cert \
 
 ```bash
 # На целевом сервере:
+
+# Для user-юнитов (PROD с KAE):
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user status monitoring-prometheus.service monitoring-grafana.service
+
+# Для системных юнитов (DEV без KAE):
 systemctl status prometheus grafana-server harvest
 
 # Проверка портов:
@@ -258,7 +265,7 @@ ss -tln | grep -E ':(3000|9090|12990|12991)'
 ├── README.md                          # 📖 Этот файл
 ├── SECURITY.md                        # 🔒 Документация по безопасности для ИБ
 ├── VERSIONING.md                      # 🔖 Руководство по версионированию
-├── VERSION                            # 📌 Версия проекта (3.0.6)
+├── VERSION                            # 📌 Версия проекта (3.0.8)
 ├── Jenkinsfile                        # 🔄 Декларативный CI/CD пайплайн
 ├── install-monitoring-stack.sh        # 🚀 Основной скрипт развертывания (4025 строк)
 ├── sudoers.example                    # ⚙️  Минимальный рабочий sudoers
@@ -465,6 +472,16 @@ verify_installation()           # Проверка статусов, порто�
 #### Сервисы
 
 ```bash
+# User-юниты (PROD с KAE):
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user status monitoring-prometheus.service  # Active (running)
+
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user status monitoring-grafana.service     # Active (running)
+
+# Системные юниты (DEV без KAE):
 systemctl status prometheus    # Active (running)
 systemctl status grafana-server # Active (running)
 systemctl status harvest       # Active (running)
@@ -655,13 +672,109 @@ https://<SERVER_ADDRESS>:12990/metrics  # NetApp poller
 https://<SERVER_ADDRESS>:12991/metrics  # Unix poller
 ```
 
+### Модели управления сервисами
+
+Проект поддерживает **две модели** запуска сервисов в зависимости от наличия KAE:
+
+#### 🎯 Модель 1: User-юниты (PROD, с KAE)
+
+**Кто запускает:**
+- Сервисы работают под пользователем `${KAE}-lnx-mon_sys` (например: `CI10742292-lnx-mon_sys`)
+- Это сервисная nologin УЗ, создаваемая через RLM/IDM
+- KAE вычисляется из `NAMESPACE_CI` (например: `CI03972721_CI10742292` → KAE=`CI10742292`)
+
+**Где находятся юниты:**
+```
+~${KAE}-lnx-mon_sys/.config/systemd/user/
+├── monitoring-prometheus.service
+├── monitoring-grafana.service
+├── monitoring-harvest.service
+└── monitoring.target
+```
+
+**Команды управления:**
+
+```bash
+# Перезапуск сервисов
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user restart monitoring-prometheus.service monitoring-grafana.service
+
+# Проверка статуса
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user status monitoring-prometheus.service
+
+# Просмотр логов
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  journalctl --user -u monitoring-prometheus.service -f
+```
+
+**Требования:**
+- Пользователь `${KAE}-lnx-mon_sys` должен существовать
+- Linger включен: `loginctl enable-linger ${KAE}-lnx-mon_sys`
+- Пользователь в группе `as-admin`
+- XDG_RUNTIME_DIR существует: `/run/user/$(id -u ${KAE}-lnx-mon_sys)`
+
+#### 🔄 Модель 2: Системные юниты (DEV/Fallback, без KAE)
+
+**Кто запускает:**
+- Стандартные системные пользователи: `prometheus`, `grafana`, `harvest`
+
+**Где находятся юниты:**
+```
+/etc/systemd/system/
+├── prometheus.service
+├── grafana-server.service
+└── harvest.service
+```
+
+**Команды управления:**
+
+```bash
+# Перезапуск сервисов
+sudo systemctl restart prometheus grafana-server harvest
+
+# Проверка статуса
+sudo systemctl status prometheus grafana-server
+
+# Просмотр логов
+sudo journalctl -u prometheus -f
+```
+
+**Когда используется:**
+- DEV окружения без KAE
+- Переходные стенды
+- Тестовые установки
+
+---
+
 ### Проверка состояния
 
 ```bash
 # Статусы сервисов
+
+# User-юниты (PROD с KAE):
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user status monitoring-prometheus.service monitoring-grafana.service
+
+# Системные юниты (DEV без KAE):
 systemctl status prometheus grafana-server harvest
 
 # Логи сервисов
+
+# User-юниты:
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  journalctl --user -u monitoring-prometheus.service -n 50 --no-pager
+
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  journalctl --user -u monitoring-grafana.service -n 50 --no-pager
+
+# Системные юниты:
 journalctl -u prometheus -n 50 --no-pager
 journalctl -u grafana-server -n 50 --no-pager
 journalctl -u harvest -n 50 --no-pager
@@ -682,14 +795,39 @@ openssl x509 -in /etc/grafana/cert/crt.crt -noout -dates
 
 ```bash
 # Перезапуск отдельного сервиса
+
+# User-юниты (PROD с KAE):
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user restart monitoring-prometheus.service
+
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user restart monitoring-grafana.service
+
+# Системные юниты (DEV без KAE):
 sudo systemctl restart prometheus
 sudo systemctl restart grafana-server
 sudo systemctl restart harvest
 
 # Перезапуск всего стека
+
+# User-юниты:
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user restart monitoring-prometheus.service monitoring-grafana.service
+
+# Системные юниты:
 sudo systemctl restart prometheus grafana-server harvest
 
 # Проверка после перезапуска
+
+# User-юниты:
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user status monitoring-prometheus.service monitoring-grafana.service
+
+# Системные юниты:
 sudo systemctl status prometheus grafana-server harvest
 ```
 
@@ -706,11 +844,25 @@ promtool check config /etc/prometheus/prometheus.yml
 grafana-cli admin reset-admin-password --config /etc/grafana/grafana.ini newpassword
 
 # 3. Применение изменений
+
+# User-юниты (PROD с KAE):
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user restart monitoring-prometheus.service monitoring-grafana.service
+
+# Системные юниты (DEV без KAE):
 sudo systemctl restart prometheus
 sudo systemctl restart grafana-server
 sudo systemctl restart harvest
 
 # 4. Проверка логов
+
+# User-юниты:
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  journalctl --user -u monitoring-prometheus.service -f
+
+# Системные юниты:
 journalctl -u prometheus -f
 ```
 
@@ -904,6 +1056,13 @@ cat /var/lib/monitoring_deployment_state
 
 ```bash
 # 1. Остановка всех сервисов
+
+# User-юниты (PROD с KAE):
+sudo -u ${KAE}-lnx-mon_sys \
+  XDG_RUNTIME_DIR="/run/user/$(id -u ${KAE}-lnx-mon_sys)" \
+  systemctl --user stop monitoring-prometheus.service monitoring-grafana.service
+
+# Системные юниты (DEV без KAE):
 sudo systemctl stop prometheus grafana-server harvest vault-agent
 
 # 2. Очистка
@@ -1069,6 +1228,22 @@ A:
 ---
 
 ## 📝 Changelog
+
+### Version 3.0.8 (2026-01-30) - 📚 Документация двух моделей управления
+
+**Изменения:**
+- 📚 Обновлена документация для user-юнитов и системных юнитов
+- 🔄 Все команды systemctl обновлены для двух моделей
+- ✨ Добавлена секция "Модели управления сервисами"
+- 🎯 Финальное сообщение скрипта показывает правильные команды
+
+### Version 3.0.7 (2026-01-30) - 🔒 Установка в постоянную директорию
+
+**Изменения:**
+- 🔒 Изменен путь установки: `/tmp/deploy-monitoring` → `/opt/monitoring/bin`
+- 📝 Обновлены Jenkinsfile, sudoers.example, sudoers.template
+- ✅ Соответствие требованиям SECURITY.md
+- 🛡️ Постоянное расположение вместо временной директории
 
 ### Version 3.0.6 (2026-01-30) - 🎯 Оптимизация вывода и форматирования
 

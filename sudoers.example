@@ -1,4 +1,4 @@
 Defaults    env_reset
 Defaults    secure_path="/usr/sbin:/usr/bin:/sbin:/bin"
 
-ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /tmp/deploy-monitoring/install-monitoring-stack.sh
+ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /opt/monitoring/bin/install-monitoring-stack.sh

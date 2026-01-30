@@ -16,14 +16,14 @@
 #    (запуск скрипта развертывания с правами root)
 #
 # Скрипт копируется Jenkins в:
-#   /tmp/deploy-monitoring/monitoring_deployment.sh
+#   /opt/monitoring/bin/install-monitoring-stack.sh
 # и запускается через sudo -n env ... bash "$REMOTE_SCRIPT_PATH".
 #
 # Рекомендуется выдать одно право на запуск скрипта
 # с атрибутом NOEXEC для исключения подстановки других бинарей.
 ############################################################
 
-ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /tmp/deploy-monitoring/monitoring_deployment.sh
+ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /opt/monitoring/bin/install-monitoring-stack.sh
 
 
 ############################################################

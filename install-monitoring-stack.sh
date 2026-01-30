@@ -4157,8 +4157,17 @@ main() {
     echo "  • Harvest (Unix):       http://localhost:$HARVEST_UNIX_PORT/metrics"
     echo
     echo "📋 Проверка статуса:"
-    echo "  • systemctl status prometheus grafana-server harvest"
-    echo "  • ss -tln | grep -E ':(3000|9090|12990|12991)'"
+    if [[ -n "${KAE:-}" ]] && id "${KAE}-lnx-mon_sys" >/dev/null 2>&1; then
+        echo "  • User-юниты (${KAE}-lnx-mon_sys):"
+        echo "    sudo -u ${KAE}-lnx-mon_sys \\"
+        echo "      XDG_RUNTIME_DIR=\"/run/user/\$(id -u ${KAE}-lnx-mon_sys)\" \\"
+        echo "      systemctl --user status monitoring-prometheus.service monitoring-grafana.service"
+    else
+        echo "  • Системные юниты:"
+        echo "    systemctl status prometheus grafana-server harvest"
+    fi
+    echo "  • Порты:"
+    echo "    ss -tln | grep -E ':(3000|9090|12990|12991)'"
     echo
     echo "📄 Файлы:"
     echo "  • State file:           $STATE_FILE"
