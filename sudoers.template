@@ -15,18 +15,23 @@
 # 1. Рекомендуемое минимальное правило
 #    (запуск скрипта развертывания с правами root)
 #
-# Скрипт копируется Jenkins в:
-#   /usr/local/bin/install-monitoring-stack.sh
-# и запускается через sudo -n env ... bash "$REMOTE_SCRIPT_PATH".
-#
-# Рекомендуется выдать одно право на запуск скрипта
-# с атрибутом NOEXEC для исключения подстановки других бинарей.
+# Скрипт копируется Jenkins в /tmp, затем устанавливается в /usr/local/bin
+# через sudo cp, и запускается через sudo -n env ... bash "$REMOTE_SCRIPT_PATH".
 #
 # ВАЖНО: /usr/local/bin должен быть в secure_path:
 # Defaults    secure_path="/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin"
 ############################################################
 
+# 1. Запуск основного скрипта развертывания
 ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /usr/local/bin/install-monitoring-stack.sh
+
+# 2. Подготовка окружения для deployment (конкретные пути)
+# ВАЖНО: Эти права нужны для установки файлов из /tmp в /usr/local/bin
+ALL=(ALL:ALL) NOPASSWD: /bin/mkdir -p /usr/local/bin/wrappers
+ALL=(ALL:ALL) NOPASSWD: /bin/cp /tmp/install-monitoring-stack.sh /usr/local/bin/install-monitoring-stack.sh
+ALL=(ALL:ALL) NOPASSWD: /bin/cp -r /tmp/wrappers/* /usr/local/bin/wrappers/
+ALL=(ALL:ALL) NOPASSWD: /bin/chmod +x /usr/local/bin/install-monitoring-stack.sh
+ALL=(ALL:ALL) NOPASSWD: /bin/chmod +x /usr/local/bin/wrappers/*.sh
 
 
 ############################################################

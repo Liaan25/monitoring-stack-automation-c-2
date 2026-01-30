@@ -1,4 +1,16 @@
 Defaults    env_reset
 Defaults    secure_path="/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin"
 
+# ============================================================
+# Monitoring Stack Deployment - Jenkins CI/CD
+# ============================================================
+
+# 1. Запуск основного скрипта развертывания
 ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /usr/local/bin/install-monitoring-stack.sh
+
+# 2. Подготовка окружения для deployment (конкретные пути)
+ALL=(ALL:ALL) NOPASSWD: /bin/mkdir -p /usr/local/bin/wrappers
+ALL=(ALL:ALL) NOPASSWD: /bin/cp /tmp/install-monitoring-stack.sh /usr/local/bin/install-monitoring-stack.sh
+ALL=(ALL:ALL) NOPASSWD: /bin/cp -r /tmp/wrappers/* /usr/local/bin/wrappers/
+ALL=(ALL:ALL) NOPASSWD: /bin/chmod +x /usr/local/bin/install-monitoring-stack.sh
+ALL=(ALL:ALL) NOPASSWD: /bin/chmod +x /usr/local/bin/wrappers/*.sh

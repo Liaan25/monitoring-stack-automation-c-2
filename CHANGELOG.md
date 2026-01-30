@@ -6,6 +6,65 @@
 
 ---
 
+## [3.0.10] - 2026-01-30 - 🚀 Масштабируемое развертывание через /tmp
+
+### Изменено
+- 🚀 **Новая схема развертывания для 1000+ серверов**:
+  - Копирование файлов в `/tmp` (не требует sudo)
+  - Установка в `/usr/local/bin` через `sudo cp` (требует права в sudoers)
+  - Установка прав через `sudo chmod`
+- 🔐 **Расширены права sudo** (конкретные пути для безопасности):
+  - `mkdir -p /usr/local/bin/wrappers`
+  - `cp /tmp/install-monitoring-stack.sh /usr/local/bin/`
+  - `cp -r /tmp/wrappers/* /usr/local/bin/wrappers/`
+  - `chmod +x` для скрипта и wrappers
+- 📋 **Обновлены sudoers файлы** с детальными комментариями и примерами
+
+### Технические детали
+
+**Процесс развертывания:**
+```bash
+# 1. Jenkins копирует файлы в /tmp (обычный пользователь)
+scp install-monitoring-stack.sh user@server:/tmp/
+scp -r wrappers user@server:/tmp/
+
+# 2. Установка в /usr/local/bin через sudo (разрешено в sudoers)
+ssh user@server "sudo mkdir -p /usr/local/bin/wrappers"
+ssh user@server "sudo cp /tmp/install-monitoring-stack.sh /usr/local/bin/"
+ssh user@server "sudo cp -r /tmp/wrappers/* /usr/local/bin/wrappers/"
+ssh user@server "sudo chmod +x /usr/local/bin/install-monitoring-stack.sh"
+ssh user@server "sudo chmod +x /usr/local/bin/wrappers/*.sh"
+
+# 3. Запуск скрипта (разрешено в sudoers)
+ssh user@server "sudo /bin/bash /usr/local/bin/install-monitoring-stack.sh"
+```
+
+**Необходимые права sudoers:**
+```bash
+# Запуск основного скрипта
+ALL=(ALL:ALL) NOEXEC: NOPASSWD: /bin/bash /usr/local/bin/install-monitoring-stack.sh
+
+# Подготовка окружения (конкретные пути)
+ALL=(ALL:ALL) NOPASSWD: /bin/mkdir -p /usr/local/bin/wrappers
+ALL=(ALL:ALL) NOPASSWD: /bin/cp /tmp/install-monitoring-stack.sh /usr/local/bin/install-monitoring-stack.sh
+ALL=(ALL:ALL) NOPASSWD: /bin/cp -r /tmp/wrappers/* /usr/local/bin/wrappers/
+ALL=(ALL:ALL) NOPASSWD: /bin/chmod +x /usr/local/bin/install-monitoring-stack.sh
+ALL=(ALL:ALL) NOPASSWD: /bin/chmod +x /usr/local/bin/wrappers/*.sh
+```
+
+### Преимущества
+- ✅ **Масштабируемость**: работает на 1000+ серверах без ручной подготовки
+- ✅ **Безопасность**: конкретные пути, нельзя использовать для других директорий
+- ✅ **Автоматизация**: sudoers развертывается один раз через Ansible/Puppet
+- ✅ **Стандарт**: соответствует Linux FHS и требованиям ИБ
+- ✅ **Простота**: Jenkins работает без дополнительных шагов
+
+### Deployment для 1000+ серверов
+1. Развернуть sudoers через систему управления конфигурацией (Ansible/Puppet/Chef)
+2. Запускать Jenkins - работает автоматически на всех серверах
+
+---
+
 ## [3.0.9] - 2026-01-30 - 🔒 Миграция в /usr/local/bin согласно требованиям ИБ
 
 ### Изменено

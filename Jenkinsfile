@@ -378,38 +378,42 @@ else
     exit 1
 fi
 
-# 2. СОЗДАЕМ ДИРЕКТОРИЮ НА УДАЛЕННОМ СЕРВЕРЕ
+# 2. КОПИРУЕМ ФАЙЛЫ В /tmp (не требует sudo)
 echo ""
-echo "[INFO] Создание рабочей директории..."
-
-if ssh -i "''' + env.SSH_KEY + '''" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' \
-    "sudo mkdir -p /usr/local/bin/wrappers && sudo chown $(whoami):$(whoami) /usr/local/bin/wrappers" 2>/dev/null; then
-    echo "[OK] Директория создана"
-else
-    echo "[ERROR] Не удалось создать директорию"
-    exit 1
-fi
-
-# 3. КОПИРУЕМ ФАЙЛЫ
-echo ""
-echo "[INFO] Копирование файлов на сервер..."
+echo "[INFO] Копирование файлов на сервер (в /tmp)..."
 
 if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     install-monitoring-stack.sh \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/usr/local/bin/install-monitoring-stack.sh 2>/dev/null; then
-    echo "[OK] Скрипт скопирован"
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/install-monitoring-stack.sh 2>/dev/null; then
+    echo "[OK] Скрипт скопирован в /tmp"
 else
     echo "[ERROR] Не удалось скопировать скрипт"
     exit 1
 fi
 
 if scp -q -i "''' + env.SSH_KEY + '''" -o StrictHostKeyChecking=no -o LogLevel=ERROR -r \
-    wrappers/* \
-    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/usr/local/bin/wrappers/ 2>/dev/null; then
-    echo "[OK] Wrappers скопированы"
+    wrappers \
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''':/tmp/ 2>/dev/null; then
+    echo "[OK] Wrappers скопированы в /tmp"
 else
     echo "[ERROR] Не удалось скопировать wrappers"
+    exit 1
+fi
+
+# 3. УСТАНОВКА ФАЙЛОВ В /usr/local/bin (через sudo)
+echo ""
+echo "[INFO] Установка файлов в /usr/local/bin..."
+
+if ssh -i "''' + env.SSH_KEY + '''" -q -o StrictHostKeyChecking=no -o LogLevel=ERROR \
+    "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' \
+    "sudo mkdir -p /usr/local/bin/wrappers && \
+     sudo cp /tmp/install-monitoring-stack.sh /usr/local/bin/ && \
+     sudo cp -r /tmp/wrappers/* /usr/local/bin/wrappers/ && \
+     sudo chmod +x /usr/local/bin/install-monitoring-stack.sh && \
+     sudo chmod +x /usr/local/bin/wrappers/*.sh" 2>/dev/null; then
+    echo "[OK] Файлы установлены в /usr/local/bin"
+else
+    echo "[ERROR] Не удалось установить файлы"
     exit 1
 fi
 
@@ -435,9 +439,19 @@ echo "[INFO] Проверка скопированных файлов..."
 ssh -i "''' + env.SSH_KEY + '''" -q -T -o StrictHostKeyChecking=no -o LogLevel=ERROR \
     "''' + env.SSH_USER + '''"@''' + params.SERVER_ADDRESS + ''' 2>/dev/null << 'REMOTE_EOF'
 
-[ ! -f "/usr/local/bin/install-monitoring-stack.sh" ] && echo "[ERROR] Скрипт не найден!" && exit 1
-[ ! -d "/usr/local/bin/wrappers" ] && echo "[ERROR] Wrappers не найдены!" && exit 1
+[ ! -f "/tmp/install-monitoring-stack.sh" ] && echo "[ERROR] Скрипт не найден в /tmp!" && exit 1
+[ ! -d "/tmp/wrappers" ] && echo "[ERROR] Wrappers не найдены в /tmp!" && exit 1
 [ ! -f "/tmp/temp_data_cred.json" ] && echo "[ERROR] Credentials не найдены!" && exit 1
+
+echo "[INFO] Установка файлов в /usr/local/bin..."
+sudo mkdir -p /usr/local/bin/wrappers
+sudo cp /tmp/install-monitoring-stack.sh /usr/local/bin/
+sudo cp -r /tmp/wrappers/* /usr/local/bin/wrappers/
+sudo chmod +x /usr/local/bin/install-monitoring-stack.sh
+sudo chmod +x /usr/local/bin/wrappers/*.sh
+
+[ ! -f "/usr/local/bin/install-monitoring-stack.sh" ] && echo "[ERROR] Скрипт не установлен!" && exit 1
+[ ! -d "/usr/local/bin/wrappers" ] && echo "[ERROR] Wrappers не установлены!" && exit 1
 
 echo "[OK] Все файлы на месте"
 REMOTE_EOF
