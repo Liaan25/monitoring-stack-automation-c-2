@@ -2,7 +2,7 @@
 
 > *Система автоматизированного развертывания стека мониторинга для enterprise*
 
-[![Version](https://img.shields.io/badge/version-3.0.9-blue.svg)](PROJECT_INFO.md)
+[![Version](https://img.shields.io/badge/version-3.0.10-blue.svg)](PROJECT_INFO.md)
 [![Status](https://img.shields.io/badge/status-production--ready-green.svg)](README.md)
 [![Security](https://img.shields.io/badge/security-enterprise--grade-brightgreen.svg)](SECURITY.md)
 
@@ -265,7 +265,7 @@ ss -tln | grep -E ':(3000|9090|12990|12991)'
 ├── README.md                          # 📖 Этот файл
 ├── SECURITY.md                        # 🔒 Документация по безопасности для ИБ
 ├── VERSIONING.md                      # 🔖 Руководство по версионированию
-├── VERSION                            # 📌 Версия проекта (3.0.9)
+├── VERSION                            # 📌 Версия проекта (3.0.10)
 ├── Jenkinsfile                        # 🔄 Декларативный CI/CD пайплайн
 ├── install-monitoring-stack.sh        # 🚀 Основной скрипт развертывания (4025 строк)
 ├── sudoers.example                    # ⚙️  Минимальный рабочий sudoers
@@ -1228,6 +1228,14 @@ A:
 ---
 
 ## 📝 Changelog
+
+### Version 3.0.10 (2026-01-30) - 🚀 Масштабируемое развертывание
+
+**Изменения:**
+- 🚀 Копирование через /tmp + sudo cp для масштабирования на 1000+ серверов
+- 🔐 Расширены права sudo (конкретные пути для безопасности)
+- 📋 Обновлены sudoers.example и sudoers.template
+- ✅ Автоматизация без ручной подготовки серверов
 
 ### Version 3.0.9 (2026-01-30) - 🔒 Миграция в /usr/local/bin
 
