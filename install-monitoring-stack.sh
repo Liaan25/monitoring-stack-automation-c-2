@@ -4081,7 +4081,7 @@ main() {
         write_diagnostic "install_vault_via_rlm выполнена"
     fi
     write_diagnostic ""
-    
+
     setup_vault_config
     write_diagnostic "setup_vault_config выполнена"
 
